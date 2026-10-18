@@ -8,9 +8,10 @@ is supported after confirming worker shutdown.
 
 [Full Russian protocol](OPERATIONS.md)
 
-The default remains MockDirector, simulated=true, mock_artifacts_only. No Hermes,
-OmniRoute, shell, background worker or Zorin connection is added. Existing
-RunSnapshot v1 is unchanged.
+**Scope of the protocol below: preserved mock taskflow v1.** Its steps use
+MockDirector, `simulated=true` and `mock_artifacts_only` with no Hermes/
+OmniRoute or shell calls. **Separate Hermes taskflow v2 already exists** using
+the same durable-operation lifecycle; see [v2 contract](HERMES_TASKFLOW.en.md).
 
 Step now reserves a durable operation in a short transaction, computes outside any
 SQLite transaction, durably saves a typed/redacted result, and atomically commits
@@ -28,7 +29,7 @@ Cancellation is not proof of no dispatch and does not undo a future provider cha
 An actual worker-process crash leaves running. No automatic retry, lease expiry,
 PID guessing or exactly-once external-effect guarantee is provided. Only after
 independently confirming worker termination may a trusted backend operator call
-mark_unknown(id). This fences late workers. resolve_unknown(id, result=typed_data)
+mark_unknown(id). This fences late workers. For **v1 only**, resolve_unknown(id, result=typed_data)
 imports independently checked evidence; omitting result records a failed attempt
 and consumes one step. Bad evidence is rejected. These recovery mutations have no
 HTTP API and cannot be invoked by a model or grant owner approval.
@@ -40,6 +41,9 @@ cannot enforce the new guard; stop workers and resolve them first.
 
 [QA evidence](qa-issue-14-offline.json): real SQLite concurrency, a killed Python
 worker, duplicate requests, SQL rollback, cancellation/fencing, recovery, redaction,
-metadata API and migration rollback. #14 remains open until a real Hermes transport,
-honest real-artifact contract and live lifecycle checks are completed after Zorin
-returns. This protocol is not an OS sandbox or a second Director.
+metadata API and migration rollback. **18 October update:** actual Hermes transport, real typed *planning*
+artifacts and bounded live evidence now exist in
+[Hermes v2](HERMES_TASKFLOW.en.md). #14 remains open until final live
+acceptance after quota recovery, including replay/max_steps. These original
+offline fixtures alone do not prove Hermes v2 live behavior. This protocol
+is not an OS sandbox or an independent code Reviewer.
