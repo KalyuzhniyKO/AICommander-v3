@@ -139,3 +139,12 @@ This does not audit Zorin, every platform, or bundled browser components.
 [Read-only GitHub PR/CI (#17)](docs/GITHUB_STATUS.en.md) reads exact-head
 metadata and detects incomplete/stale checks. It never grants merge permission;
 draft PR publishing and taskflow wiring remain pending.
+
+
+## Local fixture workflow (#15/#16)
+
+[Executor → QA → review request](docs/LOCAL_RUN.en.md) now has an explicit local
+path: approved text edits in an owned worktree, literal staging, real pytest/Django
+checks and one checksummed requirements/diff/QA bundle. A one-command synthetic
+passing/failing demo is available. No Codex CLI/models or runtime HTTP/UI/taskflow
+wiring; independent review/owner approval remain required and readiness False.

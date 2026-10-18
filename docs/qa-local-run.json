@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-18",
+  "issues": [15, 16],
+  "scope": "trusted_local_fixture_edits_to_real_QA_to_review_request_bundle",
+  "components_reused": ["OfflineExecutor", "QaRunner", "python_commands", "run_command"],
+  "local_validation": {
+    "platform": "macOS Python 3.13.12",
+    "new_workflow_tests": 39,
+    "full_suite_with_Chromium": {"passed": 490, "skipped": 2},
+    "maximum_collected_test_identifier_length": 152,
+    "compileall": "passed",
+    "pip_check": "passed",
+    "git_diff_check": "passed"
+  },
+  "verified": [
+    "new_owned_worktree_and_approved_text_edits",
+    "literal_staging_includes_new_files_without_glob_expansion",
+    "primary_checkout_files_index_and_HEAD_preserved",
+    "real_pytest_and_Django_checks",
+    "real_failed_pytest_retains_exit_1_and_blocks_review_state",
+    "source_or_command_plan_changes_invalidate_live_freshness",
+    "no_op_diff_does_not_enter_review",
+    "pre_and_post_QA_cancellation",
+    "private_complete_bundle_and_partial_export_failure",
+    "manifest_and_QA_hash_identity_and_result_consistency",
+    "modified_missing_extra_linked_or_oversized_members_rejected",
+    "recomputed_checksums_never_authenticate_or_grant_readiness",
+    "CLI_run_verify_and_failing_one_command_demo",
+    "demo_refuses_existing_root",
+    "example_hashes_survive_real_autocrlf_checkout"
+  ],
+  "example_bundles": {
+    "passing": "local-run-examples/passing",
+    "failing": "local-run-examples/failing",
+    "origin": "actual_synthetic_fixture_processes",
+    "fixture_worktrees_removed_after_export": true
+  },
+  "implementation_edits_source": "owner_supplied_static_fixture_plan",
+  "developer_agent_executed": false,
+  "independent_reviewer_executed": false,
+  "owner_approval_granted_by_workflow": false,
+  "ready_for_pr_or_merge": false,
+  "taskflow_or_HTTP_or_UI_wired": false,
+  "production_or_Zorin_used": false,
+  "model_calls": false,
+  "new_runtime_dependencies": false,
+  "OS_or_network_sandbox_implemented": false,
+  "full_stage_15_or_16_completed": false
+}

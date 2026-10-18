@@ -48,6 +48,19 @@ def _identity(path):
     return info.st_dev, info.st_ino
 
 
+def relative_parts(relative_path: str):
+    """The same portable path policy for controlled edits and literal staging."""
+    if not isinstance(relative_path, str) or "\0" in relative_path:
+        raise ExecutionError("Invalid workspace-relative path")
+    relative = PureWindowsPath(relative_path)
+    if (not relative.parts or relative.is_absolute() or relative.drive or relative.root
+            or any(p.lower() in {"..", ".git", "git~1"} or ":" in p or p.rstrip(" .") != p
+                   or p.split(".")[0].upper() in {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(10)), *(f"LPT{i}" for i in range(10))}
+                   for p in relative.parts)):
+        raise ExecutionError("Invalid workspace-relative path")
+    return relative.parts
+
+
 class OfflineExecutor:
     """Session-scoped manager for disposable, trusted repositories only.
 
@@ -208,17 +221,25 @@ class OfflineExecutor:
         """Controlled fixture edits; does not accept absolute paths or Git metadata."""
         with self._exclusive():
             _, path, _ = self._owned(key)
-            # Apply Windows rules on Linux too, so contracts do not change across platforms.
-            relative = PureWindowsPath(relative_path)
-            if (not relative_path or relative.is_absolute() or relative.drive or relative.root
-                    or any(p.lower() in {"..", ".git", "git~1"} or ":" in p or p.rstrip(" .") != p
-                           or p.split(".")[0].upper() in {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(10)), *(f"LPT{i}" for i in range(10))}
-                           for p in relative.parts)):
-                raise ExecutionError("Invalid workspace-relative path")
-            target = path.joinpath(*relative.parts)
+            target = path.joinpath(*relative_parts(relative_path))
             _within(target, path)
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(content, encoding="utf-8")
+
+    def stage(self, key: str, relative_paths: tuple[str, ...]):
+        """Stage exactly owner-selected regular files, never a Git glob or add-all."""
+        if (not isinstance(relative_paths, tuple) or not 1 <= len(relative_paths) <= 32):
+            raise ExecutionError("Approve between 1 and 32 paths")
+        parts = [relative_parts(name) for name in relative_paths]
+        with self._exclusive():
+            _, path, _ = self._owned(key)
+            for components in parts:
+                target = path.joinpath(*components)
+                _within(target, path)
+                if not target.is_file():
+                    raise ExecutionError("Staging requires regular files")
+            self._git(path, "--literal-pathspecs", "add", "--",
+                      *("/".join(p) for p in parts))
 
     def snapshot(self, key: str) -> Snapshot:
         with self._exclusive():

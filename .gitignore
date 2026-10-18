@@ -24,3 +24,7 @@ config/models.json
 # Separate local/CI security scanner environment and transient report.
 .audit-tool/
 dependency-audit.json
+
+# Private local workflow evidence/worktrees and its dedicated copied interpreter.
+.aicommander-local-runs/
+.venv-local-run/

@@ -1,0 +1,15 @@
+{
+  "task_id": "receive-example",
+  "requirements": "receive(5, 3) должен вернуть 8.",
+  "risks": "Только доверенный синтетический fixture; требуется независимое ревью.",
+  "edits": [
+    {
+      "path": "inventory.py",
+      "content": "def receive(stock, quantity):\n    return stock + quantity\n"
+    },
+    {
+      "path": "notes/change.txt",
+      "content": "Синтетическое изменение для приёмки локальной цепочки.\n"
+    }
+  ]
+}

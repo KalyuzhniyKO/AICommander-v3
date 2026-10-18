@@ -1,0 +1,14 @@
+diff --git a/notes/new.txt b/notes/new.txt
+new file mode 100644
+index 0000000..a6c4655
+--- /dev/null
++++ b/notes/new.txt
+@@ -0,0 +1 @@
++synthetic new file
+diff --git a/sample.py b/sample.py
+index b15b1b0..c8fcecd 100644
+--- a/sample.py
++++ b/sample.py
+@@ -1 +1 @@
+-VALUE = 1
++VALUE = 2
