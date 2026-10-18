@@ -1,48 +1,40 @@
-# AICommander v3 — что уже реализовано и чего ещё нет (15.10.2026)
+# AICommander 3.0 — реализовано и не реализовано (18.10.2026)
 
-**Обновление 16.10.2026:** #11–#13 проверены live и закрыты после PR #41.
-#14 добавляет [Hermes taskflow v2](HERMES_TASKFLOW.md): реальные артефакты
-планирования, optional Architect, передача предыдущих результатов и безопасные
-операции. Исполнение кода/QA и сквозная панель остаются #15/#16/#19.
-Сведения ниже о неподключённом Hermes отражают прежнее состояние foundation.
+[English](IMPLEMENTATION.en.md) · [Дорожная карта](ROADMAP.md) · [Исторический аудит 15 октября](AUDIT_2026-10-15.md)
 
-[English](IMPLEMENTATION.en.md)
+Эта страница описывает **состояние `main` после PR #56**, а не целевую
+архитектуру. Более ранние отчёты, в том числе аудит от 15 октября, сохраняются
+как датированные свидетельства и не используются для описания сегодняшней
+полноты функциональности.
 
-## Перенесено из v2
+## Фактическое состояние
 
-Минимальный FastAPI API на localhost, веб-интерфейс, SQLite с задачами/раундами/ответами и ошибками моделей; простые роли и маршрутизация по ключевым словам; OpenRouter-compatible транспорт, fallback и проверка доступности моделей; тестовый каркас без живых API-ключей.
+| Компонент | Реализовано в коде | Граница реализации |
+|---|---|---|
+| FastAPI / SQLite | Legacy tasks/rounds; проекты, версии процессов, типизированные артефакты, миграции, idempotency/operation journal | Не весь workflow разработки |
+| OmniRoute | Opt-in адаптер для ручных legacy-раундов и проверок моделей; авторизованный inventory/inference/streaming и один дочерний маршрут проверены live ([#13](qa-issue-13-live.json)) | Это не автоматический контроль всех маршрутов/цен |
+| Hermes | [Taskflow v2](HERMES_TASKFLOW.md) подключён к установленному Hermes: реальные роли/артефакты **планирования**, optional Architect, Reviewer **плана**, owner decisions, операции/cancel/unknown | Последняя полная live-проверка #14 остановлена квотами; код, QA и PR не производятся |
+| Mock taskflow v1 | Детерминированные Analyst → Architect → Developer, timeline, блокировка/возобновление и owner decision | `done` означает одобрение mock-плана, не выполненный код |
+| Локальный executor + QA | [Одноразовые Git worktrees](EXECUTION.md), allowlist/timeout; [настоящие pytest и Django checks](QA_RUNNER.md), diff и hashes; [локальный прогон](LOCAL_RUN.md) worktree → QA → пакет для ревью ([PR #52](https://github.com/KalyuzhniyKO/AICommander-v3/pull/52)) | Только доверенные тестовые проекты, не Codex CLI и не OS sandbox; нет вызова из Hermes/UI |
+| Панель MacBook | Авторизация; Mock и отдельная сохранённая история Hermes; RU/EN; выровненные группы кнопок; светофор из snapshot/operations; диагностика ([PR #54](https://github.com/KalyuzhniyKO/AICommander-v3/pull/54)) | В UI Hermes v2 — чтение/отмена, не новый запуск/approve; светофор Reviewer отражает ревью плана, не кода |
+| Просмотр локальных QA-пакетов | [Отдельный read-only раздел](LOCAL_REVIEW_PANEL.md) ([PR #56](https://github.com/KalyuzhniyKO/AICommander-v3/pull/56)): сохранённые тесты, stdout, diff и проверка целостности | Включается явно; не связан с выбранной taskflow-задачей; ни подлинность, ни актуальность кода, ни readiness не подтверждаются |
+| GitHub | [Read-only PR/CI reader](GITHUB_STATUS.md) для конкретного SHA | Автосоздания issue/branch/draft PR, reviewer-approval и merge нет |
+| Бюджет | [Offline policy/ledger](BUDGETS.md) с резервами и блокировками | Не подключён к реальным запросам Hermes/OmniRoute, не ограничивает текущие расходы |
+| Backup / безопасность | [Проверяемое SQLite backup/restore](SQLITE_BACKUPS.md), [защита API](SECURITY_BOUNDARY.md), [аудит зависимостей](DEPENDENCY_AUDIT.md) | Snapshot не зашифрован; нет полной OS/network isolation и проверки production-деплоя |
+| CI | [PR #55](https://github.com/KalyuzhniyKO/AICommander-v3/pull/55): Python 3.11–3.14 Linux/Windows, Python 3.14 macOS ARM64 + Chromium; проверки браузера на временной SQLite | CI подтверждает тестируемый checkout, не живую работу модели/Zorin и не применение изменений |
 
-## Не реализовано
+## Что остаётся для работающей AI-команды
 
-- **Hermes** ещё не подключён как реальный AI-директор.
-- **OmniRouter** уже установлен на Zorin, но его рабочий контракт в этом репозитории не изучен и не подключён.
-- Нет отдельного аналитика и настоящего тестировщика; старый `coder` генерирует текст, а не исполняет код.
-- В offline taskflow роли передают типизированные артефакты; legacy-раунды по-прежнему работают отдельно без такой передачи.
-- Offline `git worktree` executor объединён в PR #33 как отдельная библиотека. Он не подключён к taskflow/UI и не является изоляцией ОС. Реальные Codex CLI, QA/Reviewer и создание PR внутри AICommander ещё не подключены.
-- Панель защищена HTTP Basic, CSRF, проверкой Host и redaction. Поддерживается localhost через SSH tunnel. Сквозная интеграция панели с Zorin executor ещё отсутствует.
-- ID моделей — шаблоны, а не подтверждённые доступные модели.
+1. [#14](https://github.com/KalyuzhniyKO/AICommander-v3/issues/14): завершить live-приёмку Hermes v2 после восстановления квот, включая replay и ограничение шагов.
+2. [#15–#16](https://github.com/KalyuzhniyKO/AICommander-v3/issues/15): подключить безопасный Codex CLI/исполнитель, настоящий taskflow QA и **независимый** Reviewer. Существующий локальный пакет — вход для review, не сам review.
+3. [#17](https://github.com/KalyuzhniyKO/AICommander-v3/issues/17): создание draft PR, проверка CI и принятие решения владельцем (без автоматического merge).
+4. [#18–#20](https://github.com/KalyuzhniyKO/AICommander-v3/issues/18): связать расходы с runtime и завершить защищённую панель и изоляцию.
+5. [#21–#22](https://github.com/KalyuzhniyKO/AICommander-v3/issues/21): провести сквозной пилот на **отдельной тестовой копии** `warehouse_config`, затем проверить установку/восстановление на Zorin.
 
-## Что не переносили
+## Проверенные ограничения и правила
 
-Устаревшие мосты macOS, legacy pipeline Director/Judge/Final Auditor, пустые обёртки и старые планы, отдельную интеграцию OpenAI API Premium Review. ChatGPT Web остаётся ручным этапом.
-
-## Исследование и PR на проверке
-
-- [PR #26](https://github.com/KalyuzhniyKO/AICommander-v3/pull/26) объединён: исследование OSS и ADR-001 готовы, но #12 открыта до проверки #11 на Zorin.
-- [PR #30](https://github.com/KalyuzhniyKO/AICommander-v3/pull/30) — объединённая панель MacBook: авторизация и интеграция с offline taskflow уже входят в `main`.
-- [#27](https://github.com/KalyuzhniyKO/AICommander-v3/issues/27) и [#29](https://github.com/KalyuzhniyKO/AICommander-v3/issues/29) — завершённые offline-компоненты в PR #31/#33; [#28](https://github.com/KalyuzhniyKO/AICommander-v3/issues/28) пересекается с PR #30.
-
-## Проверка этапа 00
-[Issue #10](https://github.com/KalyuzhniyKO/AICommander-v3/issues/10): исправлен импорт удалённого legacy bridge, закрываются SQLite-соединения API и HTTPError, повторный запуск роли обновляет сводку. 40 тестов проверяют API, ресурсы, конфигурацию и ограниченные попытки fallback без живых API. Добавлена матрица GitHub Actions Python 3.11–3.13 на Linux/Windows.
-
-Реальные локальные результаты с exit codes: [Python 3.13](qa-foundation-python-3.13.14.json), [Python 3.12](qa-foundation-python-3.12.10.json). В обоих окружениях `compileall`, `pytest` и `pip check` завершились с кодом 0, HTTP smoke отдельного uvicorn-процесса прошёл на временной SQLite БД. В pytest остаётся предупреждение зависимости Starlette о переходе с httpx на httpx2. Локально Python 3.11 не установлен; его результат нужно проверять в GitHub Actions.
-
-## Интеграция панели и taskflow (PR #30)
-
-Панель использует существующие `/taskflow/*`: проекты/задачи, история процессов, этапы Analyst/Architect/Developer, типизированные артефакты, timeline, start/step/block/resume/cancel и owner approve/reject. Команды используют idempotency и expected_version; конфликт требует нового снимка и явного решения, потеря ответа допускает повтор того же запроса. После replay читается актуальная версия. Legacy API сохранён и защищён той же авторизацией, его раунды показываются отдельно.
-
-SQLite-миграции согласованы с уже объединённым taskflow и непустыми legacy/ранними panel-БД. Mock Director не выполняет внешний код и не вызывает модели; done означает согласованный mock-план. Git diff/QA задач/затраты и реальные Zorin-интеграции пока отсутствуют в панели. [Инструкции](MACBOOK_PANEL.md), [реальные проверки](QA_PANEL.md).
-
-## Аудит репозитория
-
-[Аудит после PR #30 и #37](AUDIT_2026-10-15.md) фиксирует состояние кода, CI и ограниченные подтверждения Zorin. Авторизованный inventory моделей и реальный Hermes → OmniRoute inference остаются непроверенными.
+- `warehouse_config` — **тестовый пилот**, а не единственный проект, который должна обслуживать AICommander. Production-БД и рабочие секреты не используются.
+- В `main` нет полноценного автономного цикла изменения кода по задаче владельца. Не принимать результат `done` в Mock/Hermes или `qa_passed` в сохранённом пакете за разрешение на merge.
+- GitHub API/CI, свежие исходники, независимое ревью и согласие владельца должны проверяться отдельно.
+- Изменения UI не выполняют inference; выбранная локализация переводит интерфейс, не тексты пользователя.
+- [Старый foundation-аудит](AUDIT_2026-10-15.md) и [QA PR #30](QA_PANEL.md) остаются полезными *историческими* отчётами, а не текущей сводкой возможностей.
