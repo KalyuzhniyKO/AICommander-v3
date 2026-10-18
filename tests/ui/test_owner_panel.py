@@ -276,3 +276,82 @@ def test_visual_acceptance_ru_en_desktop_mobile(browser_page):
                 page.screenshot(path=str(directory / f'panel-{locale}-{size}.png'), full_page=True)
     assert current(page) == before
     assert not writes, 'Locale/viewport previews must not mutate the saved run'
+
+
+def test_workflow_toolbar_language_and_saved_progress(browser_page):
+    """Controls form two aligned groups; progress is based on persisted mock states."""
+    page, expect = browser_page
+    process_ids = ('newRun', 'runTask', 'stepTask', 'pauseTask', 'stopTask')
+    owner_ids = ('approveTask', 'rejectTask')
+    page.set_viewport_size({'width': 1440, 'height': 1050})
+    process_y = [page.locator('#' + key).bounding_box()['y'] for key in process_ids]
+    owner_y = [page.locator('#' + key).bounding_box()['y'] for key in owner_ids]
+    assert max(process_y) - min(process_y) < 2, process_y
+    assert max(owner_y) - min(owner_y) < 2, owner_y
+    assert owner_y[0] > process_y[0]
+    expect(page.locator('label[for="languageSelect"]')).to_have_text('Язык')
+    expect(page.locator('#languageSelect option[value="ru"]')).to_have_text('Русский')
+
+    create_task(page, expect, 'Тест этапов без исполнения кода')
+    new_run(page, expect)
+    assert page.locator('#stageProgress li').count() == 6  # task + 3 actual roles + owner + planning
+    expect(page.locator('#stageProgress li').first).to_have_attribute('data-state', 'completed')
+    expect(page.locator('#stageProgress')).to_contain_text('Архитектор')
+    expect(page.locator('#stageSummary')).to_contain_text('Только планирование')
+    start(page, expect)
+    expect(page.locator('#stageProgress')).to_contain_text('Выполняется')
+    step(page, expect, 1)
+    expect(page.locator('#stageProgress li').nth(1)).to_have_attribute('data-state', 'completed')
+    expect(page.locator('#stageProgress li').nth(2)).to_have_attribute('data-state', 'active')
+    step(page, expect, 2)
+    step(page, expect, 3)
+    expect(page.locator('#stageProgress li').nth(4)).to_have_attribute('data-state', 'waiting')
+    expect(page.locator('#stageProgress li').nth(5)).to_have_attribute('data-state', 'pending')
+
+    saved = current(page)
+    writes = []
+    page.on('request', lambda request: writes.append(request.url) if request.method not in ('GET', 'HEAD') else None)
+    page.locator('#languageSelect').select_option('en')
+    expect(page.locator('label[for="languageSelect"]')).to_have_text('Language')
+    expect(page.locator('#languageSelect option[value="ru"]')).to_have_text('Russian')
+    expect(page.locator('#languageSelect option[value="en"]')).to_have_text('English')
+    expect(page.locator('#languageSelect')).to_have_attribute('aria-label', 'Interface language')
+    expect(page.locator('#stageHeading')).to_have_text('Workflow stages')
+    expect(page.locator('#stageProgress')).to_contain_text('Awaiting owner')
+    expect(page.locator('#stageSummary')).to_contain_text('Planning only')
+    page.locator('#diagnosticDetails').evaluate('(element) => element.open = true')
+    expect(page.locator('#processDiagnostics')).to_contain_text('Last saved action')
+    assert current(page) == saved
+    page.locator('#languageSelect').select_option('ru')
+    expect(page.locator('label[for="languageSelect"]')).to_have_text('Язык')
+    expect(page.locator('#languageSelect option[value="ru"]')).to_have_text('Русский')
+    assert not writes
+
+    page.locator('#approveTask').click()
+    expect(page.locator('#stageProgress li').nth(4)).to_have_attribute('data-state', 'completed')
+    expect(page.locator('#stageProgress li').nth(5)).to_have_attribute('data-state', 'completed')
+    expect(page.locator('#stageSummary')).to_contain_text('код и QA не проверены')
+    page.reload()
+    page.locator('[data-task]').first.click()
+    expect(page.locator('#stageProgress li').nth(5)).to_have_attribute('data-state', 'completed')
+
+    for width in (1280, 1024, 768, 390, 320):
+        page.set_viewport_size({'width': width, 'height': 850})
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), width
+        for key in (*process_ids, *owner_ids):
+            assert page.locator('#' + key).bounding_box()['width'] > 0
+
+
+def test_workflow_progress_blocked_cancelled_and_unverified_qa(browser_page):
+    page, expect = browser_page
+    create_task(page, expect, 'Тест заблокированной роли')
+    new_run(page, expect, max_steps=1)
+    start(page, expect)
+    step(page, expect, 1)
+    expect(page.locator('#stageProgress')).to_contain_text('Ошибка / блокировка')
+    assert page.locator('#stageProgress li[data-state="error"]').count() >= 1
+    expect(page.locator('#stageSummary')).to_contain_text('Только планирование')
+    page.locator('#stopTask').click()
+    expect(page.locator('#stageProgress li[data-state="error"]')).not_to_have_count(0)
+    expect(page.locator('#processDiagnostics')).to_contain_text('Отменён')
+    expect(page.locator('#stageProgress')).not_to_contain_text('QA passed')
