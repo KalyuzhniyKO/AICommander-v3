@@ -60,7 +60,7 @@
 
 ## Локальный запуск базовой версии
 
-Python **3.11–3.13**. Команды для Linux/macOS:
+Python **3.11–3.14**. Версия Python 3.14 проверяется в CI на Linux/Windows и на macOS ARM64 (включая Chromium). Для MacBook Air M4 с установленным Python 3.14 используйте `python3 -m venv .venv` — установка 3.13 отдельно не требуется. Команды для Linux/macOS:
 
 ```bash
 python3 -m venv .venv
@@ -88,7 +88,7 @@ Copy-Item config/models.example.json config/models.json
 .\.venv\Scripts\python.exe -m backend.app.main
 ```
 
-Тесты используют временные БД и конфигурации, не читают локальный `.env` и блокируют реальные HTTP-вызовы моделей. GitHub Actions выполняет compileall и pytest на Python 3.11–3.13 в Linux и Windows. `MAX_MODEL_RETRIES` задаёт общее число попыток для каждой модели, включая первую; после их исчерпания используется следующая модель. Проверки не требуют API-ключа.
+Тесты используют временные БД и конфигурации, не читают локальный `.env` и блокируют реальные HTTP-вызовы моделей. GitHub Actions выполняет compileall и pytest на Python 3.11–3.14 в Linux и Windows; на macOS ARM64 с Python 3.14 дополнительно проверяются Chromium UI и offline backend. Совместимость проверяется с последним patch-релизом 3.14 в GitHub runner, а не каждой минорной или patch-версией локальной системы. `MAX_MODEL_RETRIES` задаёт общее число попыток для каждой модели, включая первую; после их исчерпания используется следующая модель. Проверки не требуют API-ключа.
 
 Все API требуют HTTP Basic; изменяющие запросы также требуют `X-AICommander-Request: 1`. После авторизации: `GET /health`, `POST /tasks` с JSON `{"description":"Проверить документацию"}`, `GET /tasks/1`, `GET /models/status`. `POST /models/check` и создание раунда вызывают модели, если ключ настроен; примеры ID нужно заменить перед такими запросами.
 
