@@ -4,7 +4,7 @@
 
 ## Запуск тестового экземпляра
 
-Используйте отдельный checkout/worktree и тестовую SQLite, Python 3.11–3.13:
+Используйте отдельный checkout/worktree и тестовую SQLite, Python 3.11–3.14 (Python 3.14 — также в macOS ARM64 CI):
 
 ```bash
 python3 -m venv .venv
