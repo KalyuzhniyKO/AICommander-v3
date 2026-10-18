@@ -2,6 +2,8 @@
 
 [English](UI_PREVIEW.en.md) · [#28](https://github.com/KalyuzhniyKO/AICommander-v3/issues/28)
 
+> **Исторические скриншоты #28:** эти PNG сняты **до** объединения [PR #54](https://github.com/KalyuzhniyKO/AICommander-v3/pull/54) (новые группы кнопок, «светофор», диагностика и исправленный языковой селектор) и [PR #56](https://github.com/KalyuzhniyKO/AICommander-v3/pull/56) (отдельный просмотр QA-пакетов). Они свидетельствуют о старом viewport-тесте, **не** показывают текущий интерфейс. Для текущих UI-функций см. [инструкцию](MACBOOK_PANEL.md) и `tests/ui`.
+
 В настоящем Chromium создана отдельная тестовая задача и три сохранённых
 mock-артефакта до awaiting_owner. Снимки взяты с работающего локального uvicorn и
 временной SQLite, а не нарисованы вручную. Настоящие Zorin/Hermes/OmniRoute,
