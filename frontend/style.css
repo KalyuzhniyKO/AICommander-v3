@@ -62,8 +62,16 @@ input { display: block; width: 100%; padding: 10px; margin: 8px 0; font: inherit
 .task-choice { display: block; width: 100%; text-align: left; background: #0e1524; overflow-wrap: anywhere; }
 .task-choice small { display: block; margin-top: 6px; color: #bfdbfe; }
 .task-choice.selected { border-color: #22d3ee; }
-button:disabled { cursor: default; opacity: .45; transform: none; }
 button.danger { background: #991b1b; border-color: #f87171; }
+button:disabled, button:disabled:hover {
+  cursor: not-allowed;
+  opacity: 1;
+  transform: none;
+  background: #293650;
+  color: #bdcce5;
+  border-color: #667a98;
+  box-shadow: none;
+}
 :focus-visible { outline: 3px solid #22d3ee; outline-offset: 3px; }
 @media (max-width: 840px) { .workspace { grid-template-columns: 1fr; } .workspace > aside { position: static; } }
 
@@ -104,8 +112,8 @@ button.danger { background: #991b1b; border-color: #f87171; }
 /* The taskflow indicator is derived only from persisted snapshot/operations. */
 .workflow-status { margin: 18px 0; padding: 16px; border: 1px solid #415575; border-radius: 14px; background: #0e1728; min-width: 0; }
 .workflow-status h3, .action-group h3 { margin: 0 0 12px; font-size: 1rem; }
-.stage-progress { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 135px), 1fr)); gap: 9px; padding: 0; margin: 0; list-style: none; }
-.stage-indicator { min-width: 0; min-height: 54px; display: flex; align-items: center; gap: 9px; padding: 10px 12px; border-radius: 10px; border: 1px solid #46556f; background: #1c283a; overflow-wrap: anywhere; }
+.stage-progress { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 9px; padding: 0; margin: 0; list-style: none; }
+.stage-indicator { min-width: 0; min-height: 54px; display: flex; align-items: center; gap: 9px; padding: 10px 12px; border-radius: 10px; border: 1px solid #46556f; background: #1c283a; overflow-wrap: normal; word-break: normal; hyphens: manual; }
 .stage-indicator::before { content: ''; display: inline-block; flex: 0 0 12px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #a8b3c8; background: #64748b; }
 .stage-indicator[data-state="active"] { border-color: #fbbf24; }
 .stage-indicator[data-state="active"]::before { background: #fbbf24; border-color: #fef3c7; }
@@ -140,4 +148,9 @@ button.danger { background: #991b1b; border-color: #f87171; }
   .action-group--process .action-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .action-group--owner .action-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .action-group--process.hermes-actions .action-buttons { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Keep long stage titles whole on the narrowest phones. */
+@media (max-width: 420px) {
+  .stage-progress { grid-template-columns: minmax(0, 1fr); }
 }
