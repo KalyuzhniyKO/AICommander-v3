@@ -1,42 +1,22 @@
 # AICommander 3.0 — дорожная карта
 
-**Подготовка #16, 17.10.2026:** [offline QA runner](QA_RUNNER.md) выполняет
-настоящий pytest и Django checks/проверку отсутствующих миграций на доверенных
-одноразовых проектах, связывает результат с Git diff и хешами кода. Независимый
-Reviewer, OS sandbox и runtime-интеграция ещё не реализованы; полная #16 открыта.
+[English](ROADMAP.en.md) · [Реализовано и осталось](IMPLEMENTATION.md) · [Исторический аудит](AUDIT_2026-10-15.md)
 
-**Подготовка #18, 17.10.2026:** [offline budget ledger](BUDGETS.md)
-проверяет лимиты и quota на синтетических данных, без Hermes/OmniRoute. Это
-не включённый runtime-контроль расходов; полная #18 остаётся открытой.
+## Состояние `main` — 18.10.2026
 
-**Обновление 16.10.2026:** #11–#13 проверены live и закрыты после PR #41.
-#14 добавляет [Hermes taskflow v2](HERMES_TASKFLOW.md): реальные артефакты
-планирования, optional Architect, передача предыдущих результатов и безопасные
-операции. Исполнение кода/QA и сквозная панель остаются #15/#16/#19.
-Сведения ниже о неподключённом Hermes отражают прежнее состояние foundation.
+- **Завершены #10–#13**, включая подтверждённые live-проверки OmniRoute и Hermes/streaming после [PR #41](https://github.com/KalyuzhniyKO/AICommander-v3/pull/41). Исторические записи «ещё не проверено» на страницах старого аудита относятся к 15 октября.
+- **#14:** Hermes taskflow v2 планирует настоящими моделями и передаёт артефакты между ролями, но итоговая live-приёмка заблокирована квотами; **открыта**.
+- **#15/#16:** [PR #52](https://github.com/KalyuzhniyKO/AICommander-v3/pull/52) объединяет *отдельные offline-библиотеки* worktree → pytest/Django QA → пакет ревью, без Codex CLI и без независимого Reviewer; обе **открыты**.
+- **#17:** read-only проверка GitHub PR/CI, публикация draft PR ещё не реализована; **открыта**.
+- **#18:** offline журнал бюджетов, не включённый в runtime; **открыта**.
+- **#19:** [PR #54](https://github.com/KalyuzhniyKO/AICommander-v3/pull/54) добавил выравнивание кнопок, «светофор», диагностику и исправление RU/EN; [PR #56](https://github.com/KalyuzhniyKO/AICommander-v3/pull/56) — отдельный read-only просмотр QA-пакетов. Сквозной запуск AI-команды из панели **не готов**, #19 открыта.
+- **#20:** прикладные проверки безопасности проведены, OS/network isolation ещё нет; **открыта**.
+- **#21/#22:** пилот на тестовом складе и установка Zorin ещё не приняты; инструмент SQLite backup готов автономно, обе **открыты**.
+- [PR #55](https://github.com/KalyuzhniyKO/AICommander-v3/pull/55) расширил CI до Python 3.14, включая macOS ARM64 и Chromium. Основная ветка — `main`, v2 — `v2-legacy`.
 
-[English](ROADMAP.en.md) · [Аудит](AUDIT_2026-10-15.md)
+**Следующий интеграционный маршрут:** Hermes → безопасный исполнитель/Codex → QA → независимый Reviewer → draft PR/CI → решение владельца. Работа на production и автоматический merge не входят в пилот.
 
-## Фактическое состояние на 15.10.2026
-
-- Репозиторий переименован в **AICommander-v3**; [PR #35](https://github.com/KalyuzhniyKO/AICommander-v3/pull/35) перенёс v3 в основную ветку **`main`** после [6/6 успешных тестов CI](https://github.com/KalyuzhniyKO/AICommander-v3/actions/runs/38708568156); v2 сохранена в `v2-legacy`. Новые PR направлять в `main`.
-- [#10 / PR #25](https://github.com/KalyuzhniyKO/AICommander-v3/pull/25) — foundation и [#12 / PR #26](https://github.com/KalyuzhniyKO/AICommander-v3/pull/26) — OSS research/ADR merged; #12 открыта до реальной проверки совместимости.
-- [#27 / PR #31](https://github.com/KalyuzhniyKO/AICommander-v3/pull/31) — **offline taskflow готов в main**. [#29 / PR #33](https://github.com/KalyuzhniyKO/AICommander-v3/pull/33) — **offline worktree executor готов в main**; родительские #14/#15 этим не завершены.
-- [PR #30](https://github.com/KalyuzhniyKO/AICommander-v3/pull/30) — защищённая MacBook-панель с offline taskflow **объединена в main**, CI 7/7. [#28](https://github.com/KalyuzhniyKO/AICommander-v3/issues/28) не запускать параллельно как дубль.
-- [#11](https://github.com/KalyuzhniyKO/AICommander-v3/issues/11) — **частичный** Zorin-аудит; runtime-инвентаризация моделей и фактический Hermes → OmniRouter inference ещё не выполнены.
-- **Далее:** верификация #11 → #13 OmniRouter → #14 Hermes → #15–#17 реальный Codex/QA/PR → #18–#20 бюджет, панель, безопасность → #21–#22 пилот и установка. Независимые задачи можно делать параллельно с отдельными PR.
-- **Рекомендованные модели в таблице ниже — исторические ориентиры, доступность конкретных названий/уровней в текущем Codex не подтверждена.**
-
-## Результат авторизованных live-проверок #13
-
-[PR #41](https://github.com/KalyuzhniyKO/AICommander-v3/pull/41) обновляет сведения
-предыдущих пунктов: provider/model inventory, реальный text inference, Hermes
-streaming и один встроенный child route проверены. Ручной legacy-раунд приложения
-успешно прошёл через адаптер OmniRoute на временной SQLite. [Доказательства](qa-issue-13-live.json).
-ADR принял вариант без новых frameworks. После проверки и merge PR #41 можно
-закрыть инвентаризацию #11, выбор компонентов #12 и текстовый transport #13.
-Далее #14: настоящий Director и внешние эффекты в taskflow. Reboot recovery,
-произвольные tools, все combos/provider credentials и полный пилот не объявлены готовыми.
+Таблица ниже сохраняет исходную очередность и **исторические** рекомендации моделей Codex; текущая доступность этих названий не подтверждена. Независимые offline-задачи можно выполнять параллельно, но реальный end-to-end требует проверенных зависимостей.
 
 ## План интеграционных этапов
 
@@ -62,7 +42,7 @@ ADR принял вариант без новых frameworks. После про�
 
 ## Зависимости и критерии
 - #10 проверяет фактический запуск и тесты foundation.
-- #11 фиксирует реальные API/CLI интерфейсы Hermes/OmniRouter без выдачи секретов.
+- #11 зафиксировал API/CLI Hermes/OmniRouter (закрыта).
 - #12 выбирает OSS компоненты и указывает авторов/лицензии.
 - #13 подключает OmniRouter только через проверенный контракт.
 - #14 создаёт директора и структурированные передачи задач.
