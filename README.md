@@ -2,13 +2,16 @@
 
 [**English version / Английская версия**](README.en.md)
 
-**Статус:** подготовлена минимальная основа (foundation MVP). Полноценная интеграция Hermes, OmniRouter, Codex и QA **ещё не реализована**. Версия 2 сохранена в [v2-legacy](https://github.com/KalyuzhniyKO/AICommander-v3/tree/v2-legacy).
+**Статус:** foundation и несколько проверяемых компонентов готовы, но автоматический сквозной цикл Hermes → исполнитель кода → QA → Reviewer → GitHub PR **ещё не соединён**. Hermes taskflow v2 создаёт реальные артефакты *планирования*, а локальный executor/QA выполняет тесты лишь в отдельном доверенном тестовом workflow. Версия 2 сохранена в [v2-legacy](https://github.com/KalyuzhniyKO/AICommander-v3/tree/v2-legacy).
 
-## Текущий статус — 15 октября 2026
+## Текущий статус — 18 октября 2026
 
-- `main` репозитория AICommander-v3 содержит foundation, offline taskflow (PR #31) и отдельную библиотеку worktree executor (PR #33).
-- В объединённом PR #30 панель подключена к taskflow: версии, роли, артефакты, согласование/отказ, отмена и продолжение. Все маршруты защищены авторизацией и CSRF. [Проверки и границы](docs/QA_PANEL.md).
-- Адаптер OmniRoute подключается явно к ручным legacy-раундам и проверкам моделей; [live smoke](docs/OMNIROUTE_ADAPTER.md) подтвердил текстовый маршрут, streaming и делегирование установленного Hermes. Taskflow v2 использует установленный Hermes для реальных артефактов планирования; [контракт и live QA](docs/HERMES_TASKFLOW.md). V1 сохраняет Mock Director; [подготовка панели](docs/HERMES_PANEL.md) добавляет отдельный просмотр/отмену сохранённых Hermes v2-процессов. Код и QA ещё не выполняются. Итоговая live-приёмка #14 ожидает восстановления квот провайдеров.
+- `main` — AICommander-v3; задачи #11–#13 закрыты после live-проверок OmniRoute/Hermes. [Hermes v2](docs/HERMES_TASKFLOW.md) передаёт настоящие артефакты планирования, но итоговая приёмка #14 ограничена квотами и остаётся открытой.
+- [PR #52](https://github.com/KalyuzhniyKO/AICommander-v3/pull/52): offline worktree → настоящие pytest/Django checks → проверяемый локальный пакет для будущего независимого ревью; без Codex CLI, подключения taskflow или создания PR.
+- [PR #54](https://github.com/KalyuzhniyKO/AICommander-v3/pull/54): кнопки сгруппированы, этапы показаны на «светофоре» с фактическими состояниями и диагностикой, исправлен переключатель RU/EN. Завершённый этап Hermes Reviewer означает **ревью плана**, не проверку кода.
+- [PR #55](https://github.com/KalyuzhniyKO/AICommander-v3/pull/55): Python 3.11–3.14 в Linux/Windows CI и Python 3.14 на macOS ARM64 с Chromium.
+- [PR #56](https://github.com/KalyuzhniyKO/AICommander-v3/pull/56): отдельный опциональный read-only просмотр сохранённых QA-пакетов и Git diff в панели. Проверка целостности пакета **не** подтверждает автора, актуальность исходников или готовность к merge.
+- Бюджет #18, read-only GitHub CI #17, backup #22 и security #20 реализованы как отдельные части; сквозная интеграция, OS sandbox, независимый Reviewer, публикация draft PR и пилот #21 не завершены. Актуальные границы: [реализация](docs/IMPLEMENTATION.md), [дорожная карта](docs/ROADMAP.md).
 
 ## Что мы создаём
 
@@ -26,7 +29,7 @@
 - клиент совместимого с OpenRouter API, проверка моделей и резервные модели;
 - базовые тесты без реальных API-ключей.
 
-**Пока отсутствует:** сквозной исполнитель кода и QA, исполнение Codex CLI, работа с реальными файлами, настоящая песочница, создание PR внутри приложения, сквозная интеграция панели с executor и учёт бюджета. Проверки foundation подтверждены в [отчёте этапа 00](docs/IMPLEMENTATION.md), панели — в [отчёте #19](docs/QA_PANEL.md); это не проверка интеграции с Zorin.
+**Пока отсутствует в едином runtime-процессе:** запуск Codex CLI и исполнителя из Hermes/taskflow, автоматический QA и независимый Reviewer, OS sandbox, создание draft PR и действующий контроль расходов. Отдельные библиотеки worktree, реальных pytest/Django checks и чтения QA-пакетов уже реализованы, но не делают mock- или Hermes-процесс готовым к merge. Проверки foundation подтверждены в [отчёте этапа 00](docs/IMPLEMENTATION.md), панели — в [отчёте #19](docs/QA_PANEL.md); это не проверка интеграции с Zorin.
 
 **Не переносим из v2:** архивные мосты для macOS, Director/Judge/Final Auditor migration pack, старые планы, пустые обёртки ролей, ненужную интеграцию с отдельным OpenAI API Premium Review. ChatGPT в браузере используется **вручную** для сложных экспертных задач.
 
@@ -57,6 +60,9 @@
 | Панель: история Hermes (подготовка #19) | [RU](docs/HERMES_PANEL.md) | [EN](docs/HERMES_PANEL.en.md) |
 | Hermes Director: реальное планирование | [RU](docs/HERMES_TASKFLOW.md) | [EN](docs/HERMES_TASKFLOW.en.md) |
 | Журнал операций taskflow (offline-часть #14) | [RU](docs/OPERATIONS.md) | [EN](docs/OPERATIONS.en.md) |
+| Локальный цикл executor → QA → пакет ревью | [RU](docs/LOCAL_RUN.md) | [EN](docs/LOCAL_RUN.en.md) |
+| Просмотр пакетов QA и Git diff | [RU](docs/LOCAL_REVIEW_PANEL.md) | [EN](docs/LOCAL_REVIEW_PANEL.en.md) |
+| Работа с панелью MacBook | [RU](docs/MACBOOK_PANEL.md) | [EN summary](README.en.md) |
 
 ## Локальный запуск базовой версии
 
@@ -98,9 +104,9 @@ Copy-Item config/models.example.json config/models.json
 
 Основная ветка AICommander-v3 — `main`; v2 сохранена в `v2-legacy`. PR #30 объединяет интерфейс с уже реализованными offline taskflow и отдельной библиотекой executor, не вызывая внешний executor из mock-процесса.
 
-## Панель владельца (#30)
+## Панель владельца (#30, #54, #56)
 
-Защищённая панель подключена к `/taskflow/*`: процессы, этапы, типизированные артефакты, timeline, approve/reject/cancel и возобновление. V1 — Mock Director без вызовов моделей и исполнения кода. В режиме истории Hermes доступны чтение сохранённых v2-артефактов и отмена, без запуска моделей и согласования. Legacy-раунды доступны отдельно через прежний API и показываются как история. [Запуск](docs/MACBOOK_PANEL.md), [проверки](docs/QA_PANEL.md).
+Защищённая панель подключена к `/taskflow/*`: процессы, этапы, типизированные артефакты, timeline, approve/reject/cancel и возобновление. V1 — Mock Director без вызовов моделей и исполнения кода. В режиме истории Hermes доступны чтение сохранённых v2-артефактов и отмена, без запуска моделей и согласования. PR #54 добавил светофор реальных состояний и диагностику, а PR #56 — отдельный, по умолчанию выключенный просмотр локальных QA-пакетов; он не привязан к выбранному процессу и не даёт разрешения на merge. Legacy-раунды доступны отдельно через прежний API и показываются как история. [Запуск](docs/MACBOOK_PANEL.md), [проверки](docs/QA_PANEL.md).
 
 ## Аудит репозитория
 
