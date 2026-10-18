@@ -1,40 +1,38 @@
-[Русская версия](IMPLEMENTATION.md)
+# AICommander 3.0 — current implementation (18 October 2026)
 
-**16 October 2026 update:** #11–#13 were live-verified and closed after PR #41.
-#14 adds [Hermes planning v2](HERMES_TASKFLOW.en.md), typed handoffs and safe
-operations, with optional Architect. Code/QA execution and integrated UI remain
-#15/#16/#19. Statements below about missing Hermes describe the earlier foundation.
+[Русская версия](IMPLEMENTATION.md) · [Roadmap](ROADMAP.en.md) · [15 October historical audit](AUDIT_2026-10-15.md)
 
-# Audit of the v3 foundation (2026-10-14)
+This document describes `main` **after PR #56**, distinguishing tested building blocks
+from the still-unimplemented end-to-end development pipeline. Dated earlier QA
+reports remain valid for their original commits, not for every subsequent change.
 
-### Preserved from AICommander-v2
-FastAPI local REST endpoints; SQLite tasks, rounds, agent outputs and model errors; minimal browser interface; basic text role prompts and keyword router; OpenRouter-compatible transport; model fallback and availability test; pytest fixtures. These are MVP foundations only.
+## Verified components and boundaries
 
-### Not yet supported
-- No Hermes Director and no tested OmniRouter API connection.
-- No separate Analyst or executing QA agent; existing `coder` supplies text plans.
-- `round_runner` builds context before role loop; next role does not automatically see previous role's same-round output.
-- An offline worktree executor is available as a separate library (PR #33); it is not connected to taskflow and is not an OS sandbox. Real Codex execution, QA and automatic PR integration remain unavailable.
-- PR #30 protects the main app with HTTP Basic, CSRF and loopback Host checks; use an SSH tunnel.
-- Free model IDs are placeholders, not confirmed active models.
+| Component | Present in code | Not yet provided |
+|---|---|---|
+| FastAPI / SQLite | Authenticated legacy tasks/rounds, projects, versioned taskflow, typed artifacts, migrations, idempotency and operation journal | Complete development automation |
+| OmniRoute | Opt-in transport for legacy rounds and probes. Authorized inventory, inference, streaming and one delegated child route were live-tested ([evidence](qa-issue-13-live.json)) | Full route coverage or live budget enforcement |
+| Hermes taskflow v2 | Installed Hermes runtime for real **planning** artifacts, typed handoffs, optional Architect, plan Reviewer, owner decisions and safe cancellation/unknown handling ([details](HERMES_TASKFLOW.en.md)) | Final full live acceptance #14 blocked by provider quota; no coding/QA/PR |
+| Mock taskflow v1 | Deterministic Analyst → Architect → Developer, snapshots, pause/resume and owner approval | `done` is **mock plan approval**, not working code |
+| Local executor / QA | Disposable trusted worktrees, allowlisted commands, actual pytest/Django checks, diff/hashes and a local review bundle ([PR #52](https://github.com/KalyuzhniyKO/AICommander-v3/pull/52); [runbook](LOCAL_RUN.en.md)) | Codex CLI, OS sandbox, Hermes/UI runtime wiring and independent review |
+| MacBook owner panel | Authenticated mock and saved Hermes history, RU/EN, aligned controls, stage/status lights and diagnostics from saved data ([PR #54](https://github.com/KalyuzhniyKO/AICommander-v3/pull/54)) | UI cannot launch new Hermes v2 inference/approval; plan review is not code review |
+| Saved QA bundle viewer | Optional **separate read-only** panel section for saved QA evidence and Git diffs with integrity checks ([PR #56](https://github.com/KalyuzhniyKO/AICommander-v3/pull/56); [docs](LOCAL_REVIEW_PANEL.en.md)) | No proof of provenance/current source, no taskflow binding or merge readiness |
+| GitHub | Exact-head read-only PR/CI status library ([docs](GITHUB_STATUS.en.md)) | Issue/branch/draft PR publishing, automatic review/merge |
+| Budget | Offline admission/reservations ledger ([docs](BUDGETS.en.md)) | Connected real provider calls/usage/cost |
+| Recovery/security | SQLite backup and new-file restore, protected API and dependency audit ([backup](SQLITE_BACKUPS.en.md); [security](SECURITY_BOUNDARY.en.md)) | Encrypted backups, full OS/network isolation and deployed Zorin acceptance |
+| CI | [PR #55](https://github.com/KalyuzhniyKO/AICommander-v3/pull/55): Python 3.11–3.14 Linux/Windows; Python 3.14 macOS ARM64 plus Chromium; ephemeral databases | Does not establish live Zorin/provider integration |
 
-### Not copied from v2
-Old CLI/bridge for macOS, Director/Judge/Final Auditor migration modules, premium OpenAI review logic/API, redundant role wrappers and old plans. v3's paid ChatGPT web review is a **manual** step; API usage is a separate product/cost.
+## Outstanding integration steps
 
-### Research and pending UI PR
+- **#14:** repeat full Hermes v2 live acceptance after provider quota recovery.
+- **#15/#16:** integrate Codex CLI, safe execution, taskflow QA and an **independent Reviewer**. A review-request file is not a review decision.
+- **#17:** publish draft GitHub PR with checked evidence and fresh CI, require explicit owner decision, never auto-merge.
+- **#18–#20:** enforce real budgets, complete UI integration and OS/network isolation.
+- **#21/#22:** conduct end-to-end pilot on an **isolated test copy** of `warehouse_config`; validate Zorin installation/restore. AICommander itself is intended for arbitrary future projects, not only warehouse_config.
 
-- [PR #26](https://github.com/KalyuzhniyKO/AICommander-v3/pull/26) merged (OSS research / ADR-001); #12 remains open until #11 verifies Zorin integration contracts.
-- [PR #30](https://github.com/KalyuzhniyKO/AICommander-v3/pull/30) contains the merged MacBook UI. PR #30 is merged: the authenticated panel and its offline taskflow integration are available in main.
-- [#27](https://github.com/KalyuzhniyKO/AICommander-v3/issues/27) and [#29](https://github.com/KalyuzhniyKO/AICommander-v3/issues/29) are merged offline packages (#31/#33); [#28](https://github.com/KalyuzhniyKO/AICommander-v3/issues/28) overlaps PR #30.
+## Interpretation rules
 
-### Stage 00 verification
-Issue #10 removes the broken legacy bridge import, closes API SQLite connections and HTTPError handles, and refreshes round summaries after role reruns. 40 offline tests cover API behavior, resources, config and bounded fallback attempts. GitHub Actions covers Python 3.11–3.13 on Linux/Windows.
-
-Actual local exit codes and output: [Python 3.13](qa-foundation-python-3.13.14.json), [Python 3.12](qa-foundation-python-3.12.10.json). Compilation, pytest and pip check exited 0 in both environments; a separate uvicorn HTTP smoke passed using temporary SQLite. Pytest emits one Starlette dependency deprecation warning about migrating from httpx to httpx2. Python 3.11 is not installed locally; verify its result in GitHub Actions.
-
-### Panel/taskflow integration (2026-10-15)
-The panel uses existing taskflow commands, typed artifacts, stages and timeline. It preserves expected_version and idempotency keys, refreshes after conflicts and replays, and keeps legacy rounds separate. Additive panel migrations preserve legacy, taskflow and early panel databases. See [runbook](MACBOOK_PANEL.md) and [actual QA](QA_PANEL.md). All completion remains mock artifacts only.
-
-## Repository audit
-
-[Audit updated after PR #30 and #37 (RU)](AUDIT_2026-10-15.md) records code, CI and limited Zorin evidence. The main branch is v3; v2-legacy preserves v2. Live model inventory and Hermes → OmniRoute inference remain unverified.
+- `done` for Mock/Hermes, and even `qa_passed` on a saved local bundle, **never authorize merging**.
+- Passing Chromium/pytest on ephemeral fixtures does not verify provider quota, current deployed Zorin services, production data or physical Safari devices.
+- The language selector changes interface labels only; user text and server artifacts remain as authored.
+- Preserve historic audit artifacts as dated evidence; do not project their historical missing/present claims onto the current `main`.

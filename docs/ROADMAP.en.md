@@ -1,23 +1,22 @@
 # AICommander 3.0 — dependency-aware roadmap
 
-**#18 preparation, 17 October 2026:** [offline budget ledger](BUDGETS.en.md)
-tests limits/quota with synthetic data, without Hermes/OmniRoute. Current runtime
-spending is not governed by it; full #18 remains open.
+[Русская версия](ROADMAP.md) · [Current implementation](IMPLEMENTATION.en.md) · [Historical audit](AUDIT_2026-10-15.md)
 
-**16 October 2026 update:** #11–#13 were live-verified and closed after PR #41.
-#14 adds [Hermes planning v2](HERMES_TASKFLOW.en.md), typed handoffs and safe
-operations, with optional Architect. Code/QA execution and integrated UI remain
-#15/#16/#19. Statements below about missing Hermes describe the earlier foundation.
+## Current `main` status — 18 October 2026
 
-[Русская версия](ROADMAP.md) · [Verified audit (RU)](AUDIT_2026-10-15.md)
+- **#10–#13 closed:** authorized OmniRoute/Hermes live transport/inventory checks were completed after [PR #41](https://github.com/KalyuzhniyKO/AICommander-v3/pull/41).
+- **#14 open:** Hermes taskflow v2 provides real planning and role handoffs. Final complete live acceptance still blocked by provider quota.
+- **#15/#16 open:** [PR #52](https://github.com/KalyuzhniyKO/AICommander-v3/pull/52) merged a *standalone offline* trusted worktree → real pytest/Django checks → review-bundle path. No Codex CLI/taskflow wiring or independent Reviewer.
+- **#17 open:** read-only GitHub exact-head CI status; no draft PR publication.
+- **#18 open:** offline budget ledger, not enforced in runtime.
+- **#19 open:** [PR #54](https://github.com/KalyuzhniyKO/AICommander-v3/pull/54) merged aligned controls, saved-state traffic lights and diagnostics plus RU/EN fix; [PR #56](https://github.com/KalyuzhniyKO/AICommander-v3/pull/56) merged an optional read-only saved QA/Git diff viewer, separate from taskflow. No end-to-end command from the panel.
+- **#20 open:** app-layer security work complete in part; OS/network sandbox pending.
+- **#21/#22 open:** isolated warehouse pilot, Zorin deployment and restore acceptance pending; a standalone SQLite backup module exists.
+- [PR #55](https://github.com/KalyuzhniyKO/AICommander-v3/pull/55) extended CI to Python 3.14, including macOS ARM64 + Chromium. Default branch is `main`; v2 is preserved in `v2-legacy`.
 
-**15 October 2026:** [PR #35](https://github.com/KalyuzhniyKO/AICommander-v3/pull/35) merged v3 into default **`main`** with [6/6 CI jobs](https://github.com/KalyuzhniyKO/AICommander-v3/actions/runs/38708568156). Repo was renamed AICommander-v3, prior v2 preserved at `v2-legacy`. New PRs target `main`.
+**Next integration path:** Hermes → safe executor/Codex → QA → independent Reviewer → GitHub draft PR/CI → explicit owner decision. Do not claim production changes or automatic merge.
 
-- [PR #25](https://github.com/KalyuzhniyKO/AICommander-v3/pull/25) foundation and [PR #26](https://github.com/KalyuzhniyKO/AICommander-v3/pull/26) OSS research merged. #12 remains open for live validation.
-- [PR #31](https://github.com/KalyuzhniyKO/AICommander-v3/pull/31) offline mock taskflow and [PR #33](https://github.com/KalyuzhniyKO/AICommander-v3/pull/33) offline worktree executor merged; they do **not** complete the actual Hermes/Codex integrations.
-- [PR #30](https://github.com/KalyuzhniyKO/AICommander-v3/pull/30) authenticated MacBook UI with offline taskflow is **merged into main**, CI 7/7. Pause duplicate #28.
-- [#11](https://github.com/KalyuzhniyKO/AICommander-v3/issues/11) Zorin inventory is partial; validate live Hermes → OmniRouter first. Real integration phases remain dependency-gated, while independent offline improvements may run in parallel.
-- Suggested Codex model names below are **historical preferences, not verified availability**.
+The stage table below preserves the **historical** task/model recommendations; specific old model names and access are not guaranteed. Independent offline work can be parallelized; real integration must honor dependencies.
 
 ## Historical parent-task plan
 
@@ -46,8 +45,7 @@ Independent tasks may run in parallel, but real integration stages must respect 
 inventory deferral: bounded authorized inventory/text inference, Hermes streaming
 and one delegated child route are verified. The app's manual legacy round used
 OmniRoute with temporary SQLite. [Evidence](qa-issue-13-live.json). The conservative
-no-new-framework ADR is accepted. After this PR is verified/merged, #11/#12/#13
-can close; #14 still owns real Director/external effects in taskflow. Reboot
+no-new-framework ADR is accepted. PR #41 has merged and #11–#13 are closed; #14 still owns real Director/external effects in taskflow. Reboot
 recovery, arbitrary tools and all provider/fallback routes are not claimed.
 
 

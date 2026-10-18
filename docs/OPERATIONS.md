@@ -8,10 +8,11 @@ Mock Director ниже относится к сохранённому контр
 
 [English](OPERATIONS.en.md) · часть [#14](https://github.com/KalyuzhniyKO/AICommander-v3/issues/14)
 
-**Offline-основа #14, не интеграция Hermes Director.** Все штатные step по-прежнему
-используют MockDirector; RunSnapshot v1, simulated=true и scope mock_artifacts_only
-сохраняются. Здесь нет клиента Hermes/OmniRoute, shell или автоматического фонового
-worker. Zorin и модели для реализации/тестов не используются.
+**Область описания ниже — сохранённый Mock taskflow v1.** Его штатные
+шаги используют MockDirector; `RunSnapshot v1` помечен `simulated=true`
+и `mock_artifacts_only`. Ветка v1 не подключена к Hermes/OmniRoute, shell или
+автоматическому фоновому worker. **Отдельный Hermes taskflow v2 уже существует**
+и использует тот же принцип коротких операций; см. [контракт v2](HERMES_TASKFLOW.md).
 
 ## Фазы
 
@@ -90,6 +91,10 @@ writer, отдельный Python-процесс с os._exit, задержанн
 Проверены replay, SQL rollback, idempotency namespace, cancellation/fencing,
 ручное разрешение unknown, redaction, metadata API и миграция старой v1 БД.
 
-Для полного #14 ещё нужны проверенный transport установленного Hermes, реальные
-типизированные role artifacts с честными флагами, error/timeout/cancel semantics
-и live-тесты после включения Zorin. Этот PR не закрывает #14 и не меняет цели #15.
+**Актуализация 18.10.2026:** проверенный transport Hermes, реальные
+типизированные *плановые* артефакты и часть live-проверок теперь есть в
+[Hermes v2](HERMES_TASKFLOW.md). Полная #14 остаётся открытой до итоговой
+live-приёмки с восстановленными квотами и проверкой replay/max_steps;
+работающее исполнение кода и QA сюда не входят. Этот документ сохраняет
+исторические fixture-доказательства механизма v1 и не подтверждает
+live-работу v2 сам по себе.
