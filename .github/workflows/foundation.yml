@@ -14,11 +14,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.11', '3.12', '3.13']
+        python-version: ['3.11', '3.12', '3.13', '3.14']
         os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
           cache: pip
@@ -53,12 +53,39 @@ jobs:
           RUN_UI_TESTS: '1'
         run: python -m pytest -q tests/ui
 
+  # Native Apple Silicon runner, matching the MacBook Air M4 architecture.
+  macos-arm64-py314:
+    name: Python 3.14 / macOS 15 ARM64 + Chromium
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+          cache: pip
+      - name: Update package installer
+        run: python -m pip install --upgrade "pip>=26.2.1"
+      - name: Install app and UI test dependencies
+        run: python -m pip install -r requirements-ui.txt
+      - name: Check dependencies
+        run: python -m pip check
+      - name: Compile backend
+        run: python -m compileall backend
+      - name: Run offline backend tests without provider/model access
+        run: python -m pytest -q
+      - name: Install Chromium
+        run: python -m playwright install chromium
+      - name: Run real browser tests against temporary DB
+        env:
+          RUN_UI_TESTS: '1'
+        run: python -m pytest -q tests/ui
+
   audit:
     name: Installed Python dependency audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
           cache: pip
