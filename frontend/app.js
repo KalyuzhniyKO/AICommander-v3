@@ -36,6 +36,7 @@ function status(text) { el('status').textContent = tr(text); }
 function controls() {
   const locked = busy || Boolean(pending), state = run?.status;
   el('flowMode').disabled = locked;
+  el('processActionsHeading').parentElement.classList.toggle('hermes-actions', isHermes());
   el('projectSelect').disabled = locked;
   el('maxSteps').disabled = locked || isHermes();
   el('maxSteps').parentElement.hidden = isHermes();
@@ -134,6 +135,77 @@ function renderOperations() {
     ? (en ? 'The call may have been sent. Automatic retry is blocked. After confirming the worker stopped, an operator must resolve the outcome. Cancellation does not resolve an unknown outcome.' : 'Вызов мог быть отправлен. Автоматический повтор запрещён. После подтверждения остановки worker оператор должен разрешить исход. Отмена не разрешает неизвестный исход.')
     : en ? 'Refresh to read the latest state. Viewing and switching languages never restart operations.' : 'Обновите данные для актуального состояния. Просмотр и смена языка не перезапускают операции.');
 }
+// Traffic lights are derived exclusively from the selected run snapshot and saved
+// operation metadata. A completed Hermes Reviewer means plan review, never code QA.
+function renderProgress() {
+  const en = panelLocale.language === 'en';
+  const stateNames = en
+    ? {pending:'Not started',active:'In progress',completed:'Completed',error:'Blocked / failed',
+        waiting:'Awaiting owner',unknown:'Outcome unknown'}
+    : {pending:'Не начато',active:'Выполняется',completed:'Завершено',error:'Ошибка / блокировка',
+        waiting:'Ожидает владельца',unknown:'Исход неизвестен'};
+  const items = [];
+  const add = (name, state) => {
+    const safe = Object.hasOwn(stateNames, state) ? state : 'pending';
+    items.push(`<li class="stage-indicator" data-state="${safe}"><span>${esc(name)}<br><small>${esc(stateNames[safe])}</small></span></li>`);
+  };
+  if (!task) {
+    add(en ? 'Task' : 'Задача', 'pending');
+  } else {
+    add(en ? 'Task created' : 'Задача создана', 'completed');
+    if (run) {
+      for (const stage of run.stages || []) {
+        const unknownOperation = isHermes() && operations.some(op => op.role === stage.role && op.state === 'unknown');
+        const stageStatus = unknownOperation ? 'unknown'
+          : stage.status === 'completed' ? 'completed'
+          : ['failed','blocked','cancelled'].includes(stage.status) ? 'error'
+          : stage.status === 'ready' && run.status === 'running' ? 'active' : 'pending';
+        add(label(stage.role), stageStatus);
+      }
+      const ownerState = run.status === 'awaiting_owner' ? 'waiting'
+        : run.status === 'done' ? 'completed'
+        : run.owner_decision === 'rejected' ? 'error' : 'pending';
+      add(en ? 'Owner decision' : 'Решение владельца', ownerState);
+      add(en ? 'Planning outcome' : 'Итог планирования',
+        run.status === 'done' ? 'completed' : ['failed','cancelled'].includes(run.status) ? 'error' : 'pending');
+    }
+  }
+  el('stageProgress').innerHTML = items.join('');
+
+  const unknown = isHermes() && operations.some(op => op.state === 'unknown');
+  const opUnavailable = isHermes() && operationError;
+  el('stageSummary').textContent = !task ? (en ? 'Select a task.' : 'Выбери задачу.')
+    : !run ? (en ? 'No run selected; execution status unavailable.' : 'Процесс не выбран; данных о выполнении нет.')
+    : unknown ? (en ? 'Operation outcome unknown — do not retry automatically.' : 'Исход операции неизвестен — автоматический повтор запрещён.')
+    : opUnavailable ? (en ? 'Operation state unavailable; no completion is assumed.' : 'Состояние операций недоступно; завершение не подтверждено.')
+    : `${isHermes() ? 'Hermes · ' : 'Mock Director · '}${runLabel()}. ${en ? 'Steps' : 'Шаги'} ${run.steps_done}/${run.max_steps}. ${en ? 'Planning only; code and QA not verified.' : 'Только планирование; код и QA не проверены.'}`;
+
+  const entries = [
+    [en ? 'Source' : 'Источник', isHermes() ? 'Hermes · planning' : 'Mock Director'],
+    [en ? 'Task ID' : 'ID задачи', task?.id],
+    [en ? 'Run ID' : 'ID процесса', run?.run_id],
+    [en ? 'Run status' : 'Статус процесса', run ? runLabel() : null],
+    [en ? 'Step counter' : 'Шаги', run ? `${run.steps_done}/${run.max_steps}` : null],
+    [en ? 'Current role' : 'Текущая роль', run?.stages?.find(stage => stage.status === 'ready')?.role
+      ? label(run.stages.find(stage => stage.status === 'ready').role) : null],
+    [en ? 'Last saved action' : 'Последнее событие',
+      run?.timeline?.length ? label(run.timeline[run.timeline.length - 1].action) : null],
+    [en ? 'Operation ID' : 'ID операции', isHermes() && !operationError && operations.length ? operations[operations.length - 1].id : null],
+    [en ? 'Operation state' : 'Состояние операции', isHermes() ?
+      operationError ? (en ? 'Unavailable' : 'Недоступно') :
+      operations.length ? ({running:en?'In progress':'Выполняется',
+        result_ready:en?'Result saved':'Результат сохранён',
+        unknown:en?'Unknown outcome':'Исход неизвестен',
+        succeeded:en?'Committed':'Зафиксировано',
+        failed:en?'Failed':'Ошибка',
+        discarded:en?'Discarded':'Отброшено'}[operations[operations.length - 1].state] || (en?'Unknown':'Неизвестно')) : null : null],
+    [en ? 'Code execution / QA' : 'Исполнение кода / QA', en ? 'Not verified' : 'Не проверено']
+  ];
+  const fallback = en ? 'No data' : 'Нет данных';
+  el('processDiagnostics').innerHTML = entries.map(([name, value]) =>
+    `<div><dt>${esc(name)}</dt><dd>${esc(value === null || value === undefined ? fallback : value)}</dd></div>`).join('');
+}
+
 function renderDetail() {
   renderMode();
   el('taskTitle').textContent = task?.title || tr('Выбери задачу');
@@ -146,7 +218,7 @@ function renderDetail() {
   el('artifacts').innerHTML = (run?.artifacts || []).map(a => `<details><summary>${esc(label(a.role))} · ${esc(a.type)} · #${a.artifact_id} · ${isHermes() ? 'Hermes · '+esc(panelLocale.language === 'en' ? 'planning only' : 'только планирование') : 'mock'}</summary><p>${esc(tr('Входы:'))} ${esc(a.input_artifact_ids.join(', ') || tr('нет'))} · ${esc(a.created_at)}</p>${isHermes() && a.provenance ? `<p class="provenance">${esc(a.provenance.origin)} · ${esc(a.provenance.model_id)}<br>SDK: ${esc(a.provenance.sdk_commit)}<br>Operation: ${esc(a.provenance.operation_id)}<br>Input SHA-256: ${esc(a.provenance.input_sha256)}</p>` : ''}<pre>${esc(JSON.stringify(a.content,null,2))}</pre></details>`).join('') || `<p>${esc(tr('Артефактов пока нет.'))}</p>`;
   el('decisions').innerHTML = (run?.timeline || []).map(e => `<p>v${e.version} · ${esc(label(e.action) || e.action)} → ${esc(label(e.to_status))} · ${esc(e.created_at)}<br>${esc(e.reason)}</p>`).join('') || `<p>${esc(tr('Событий пока нет.'))}</p>`;
   el('rounds').innerHTML = (task?.rounds || []).map(r => `<article class="round-card"><h4>${esc(panelLocale.language === 'en' ? 'Legacy round' : 'Legacy раунд')} ${r.round_number}</h4>` + r.role_outputs.map(o => `<details><summary>${esc(o.role)} · ${esc(o.status)}</summary><pre>${esc(o.output)}</pre></details>`).join('') + '</article>').join('') || `<p>${esc(tr('Legacy-раундов нет.'))}</p>`;
-  controls(); renderTasks(); renderDirector(); renderOperations(); renderCachedModels();
+  controls(); renderTasks(); renderDirector(); renderOperations(); renderProgress(); renderCachedModels();
 }
 async function selectTask(id, selectedRun) {
   const [selectedTask, selectedRuns] = await Promise.all([api('/tasks/' + id), api(`${flowRoot()}/tasks/${id}/runs`)]);
