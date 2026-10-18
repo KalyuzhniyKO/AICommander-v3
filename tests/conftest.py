@@ -12,6 +12,7 @@ def isolated_app(tmp_path,monkeypatch):
     monkeypatch.setattr(app_config,"_dotenv",lambda: None)
     monkeypatch.setenv("PANEL_PASSWORD", "test-panel-password-32-characters-long")
     monkeypatch.setenv("PANEL_USER", "owner")
+    monkeypatch.delenv("LOCAL_REVIEW_ROOT", raising=False)
     monkeypatch.setenv("OPENROUTER_API_KEY","")
     monkeypatch.setenv("OPENROUTER_BASE_URL","https://models.invalid/api/v1")
     # Never inherit an operator's live OmniRoute opt-in or credentials.
@@ -77,3 +78,22 @@ def write_models_config(tmp_path):
 @pytest.fixture
 def minimal_models_config():
     return {r:[f"openrouter/test-{r}"] for r in ("manager","architect","designer","coder","reviewer")}
+
+@pytest.fixture
+def saved_review_store(tmp_path, monkeypatch):
+    """Published synthetic bundles copied byte-for-byte into an explicit store."""
+    from dataclasses import replace
+    from pathlib import Path
+    import shutil
+    from backend.app import main
+    root = tmp_path / 'reviews'
+    root.mkdir()
+    bundles = {}
+    for case in ('passing', 'failing'):
+        source = Path(__file__).resolve().parents[1] / 'docs' / 'local-run-examples' / case
+        manifest = json.loads((source / 'manifest.json').read_text(encoding='utf-8'))
+        destination = root / manifest['run_id']
+        shutil.copytree(source, destination)
+        bundles[case] = destination
+    monkeypatch.setattr(main, 'settings', replace(main.settings, local_review_root=str(root)))
+    return root, bundles

@@ -16,6 +16,7 @@ from backend.app.orchestration.model_check import check_models
 from backend.app.storage.db import connect, init_db
 from backend.app.storage.repositories import Repository
 from backend.app.taskflow.api import create_router
+from backend.app.localrun.panel import create_review_router
 from backend.app.taskflow.hermes_api import create_hermes_router
 
 @asynccontextmanager
@@ -204,6 +205,7 @@ def recover_interrupted():
         conn.execute("UPDATE tasks SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE status IN ('running','stopping')")
         conn.commit()
 
+app.include_router(create_review_router(lambda: settings))
 app.include_router(create_router(repository))
 app.include_router(create_hermes_router(repository,lambda:settings))
 app.mount("/",StaticFiles(directory=str(Path(__file__).resolve().parents[2] / "frontend"),html=True),name="frontend")

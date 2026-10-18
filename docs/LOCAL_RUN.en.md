@@ -1,5 +1,7 @@
 # Local executor → QA → review request workflow
 
+**Update: saved bundles can be explicitly enabled in the [read-only panel viewer](LOCAL_REVIEW_PANEL.en.md). This does not connect model execution or taskflow QA. References below to no panel integration describe the original library scope.**
+
 [Русский](LOCAL_RUN.md)
 
 `LocalQaSession` connects the existing OfflineExecutor and QaRunner in a fixed,

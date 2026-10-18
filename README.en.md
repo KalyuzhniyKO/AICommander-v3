@@ -148,3 +148,5 @@ path: approved text edits in an owned worktree, literal staging, real pytest/Dja
 checks and one checksummed requirements/diff/QA bundle. A one-command synthetic
 passing/failing demo is available. No Codex CLI/models or runtime HTTP/UI/taskflow
 wiring; independent review/owner approval remain required and readiness False.
+
+[Saved QA bundle viewer](docs/LOCAL_REVIEW_PANEL.en.md): optional read-only panel section for local fixture reports/diff, with integrity checks. Not current-source verification or independent review.

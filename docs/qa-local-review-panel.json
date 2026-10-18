@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-18",
+  "scope": "offline_saved_bundle_panel",
+  "live_zorin": false,
+  "new_api_tests": 25,
+  "new_chromium_tests": 5,
+  "checks": [
+    {
+      "command": "python -m compileall -q backend",
+      "exit_code": 0
+    },
+    {
+      "command": "python -m pytest -q tests/test_review_api.py tests/test_localrun.py",
+      "passed": 64,
+      "exit_code": 0
+    },
+    {
+      "command": "RUN_UI_TESTS=1 python -m pytest -q tests/ui/test_review_panel.py",
+      "passed": 5,
+      "exit_code": 0
+    },
+    {
+      "command": "PYTHONPATH=/tmp RUN_UI_TESTS=1 python -m pytest -q -x -p aicommander_process_trace",
+      "passed": 520,
+      "skipped": 2,
+      "exit_code": 0,
+      "note": "Temporary diagnostic plugin traces existing executor exceptions; no product behavior is changed by the plugin."
+    }
+  ],
+  "unresolved_observation": "Two full local runs intermittently failed the existing output-limit process cleanup test with outcome error and a Popen ResourceWarning. One intermediate full run passed 518 tests before the final two malformed-Unicode tests; final diagnostic full run passed 520. Reproduction and CI remain required; no cleanup fix is claimed.",
+  "visuals_inspected": [
+    "passing-ru.png",
+    "failing-en.png",
+    "failing-mobile.png",
+    "integrity-error.png"
+  ],
+  "visual_source": "real local Chromium and HTTP with copied synthetic saved bundles; not live Zorin/Safari/device acceptance",
+  "boundaries": {
+    "authenticated_bundle": false,
+    "current_source_verified": false,
+    "independent_review_executed": false,
+    "ready_for_pr": false,
+    "ready_for_merge": false,
+    "model_execution": false,
+    "taskflow_attachment": false,
+    "database_migration": false
+  }
+}
