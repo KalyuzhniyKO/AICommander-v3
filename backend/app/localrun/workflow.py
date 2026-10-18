@@ -2,6 +2,7 @@
 from dataclasses import asdict, dataclass
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -118,8 +119,18 @@ def _nonfinite(value):
     raise ValueError('Nonfinite JSON value')
 
 
+def _finite_float(value):
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError('Nonfinite JSON number')
+    return number
+
+
 def _decode(data):
-    return json.loads(data.decode('utf-8'), object_pairs_hook=_unique, parse_constant=_nonfinite)
+    value = json.loads(data.decode('utf-8'), object_pairs_hook=_unique, parse_constant=_nonfinite, parse_float=_finite_float)
+    # Escaped lone surrogates parse as Python strings but cannot form UTF-8 JSON.
+    json.dumps(value, ensure_ascii=False, allow_nan=False).encode('utf-8')
+    return value
 
 
 def _read(path, limit):
@@ -134,7 +145,7 @@ def _read(path, limit):
     return data
 
 
-def verify_bundle(directory: Path, *, allowed_root: Path, expected_manifest_sha256=None):
+def _load_bundle(directory: Path, *, allowed_root: Path, expected_manifest_sha256=None):
     """Integrity only, not authenticity, current source, independent review or permission."""
     try:
         root, directory = Path(allowed_root).absolute(), Path(directory).absolute()
@@ -229,11 +240,27 @@ def verify_bundle(directory: Path, *, allowed_root: Path, expected_manifest_sha2
             raise ExecutionError('Invalid local review state')
         return {'integrity_valid': True, 'authenticated': False, 'current_source_verified': False,
                 'ready_for_pr': False, 'ready_for_merge': False, 'manifest': manifest,
-                'manifest_sha256': _sha(raw_manifest)}
+                'manifest_sha256': _sha(raw_manifest)}, contents, report
     except ExecutionError:
         raise
     except (OSError, ValueError, TypeError, KeyError, UnicodeError, RecursionError):
         raise ExecutionError('Local bundle could not be verified') from None
+
+
+def verify_bundle(directory: Path, *, allowed_root: Path, expected_manifest_sha256=None):
+    """Verify integrity without exposing content or granting execution permission."""
+    return _load_bundle(directory, allowed_root=allowed_root,
+                        expected_manifest_sha256=expected_manifest_sha256)[0]
+
+
+def read_bundle(directory: Path, *, allowed_root: Path):
+    """Return the exact bytes verified in one bounded read, decoded as plain UTF-8."""
+    verified, contents, report = _load_bundle(directory, allowed_root=allowed_root)
+    try:
+        artifacts = {name: data.decode('utf-8') for name, data in contents.items()}
+    except UnicodeError:
+        raise ExecutionError('Local artifact is not UTF-8 text') from None
+    return {**verified, 'artifacts': artifacts, 'qa_report': report}
 
 
 class LocalQaSession:
