@@ -18,12 +18,16 @@ reader = PublicGitHubStatus(
         'Python 3.11 / ubuntu-latest', 'Python 3.11 / windows-latest',
         'Python 3.12 / ubuntu-latest', 'Python 3.12 / windows-latest',
         'Python 3.13 / ubuntu-latest', 'Python 3.13 / windows-latest',
-        'Chromium owner panel', 'Installed Python dependency audit',
+        'Python 3.14 / ubuntu-latest', 'Python 3.14 / windows-latest',
+        'Chromium owner panel', 'Python 3.14 / macOS 15 ARM64 + Chromium',
+        'Installed Python dependency audit',
     ),
     expected_app_id=15368,  # GitHub Actions, checked against this repo's API data
 )
 snapshot = reader.snapshot(50)
 ```
+
+Пример обновлён после [PR #55](https://github.com/KalyuzhniyKO/AICommander-v3/pull/55) под текущую матрицу CI. Проверять имена jobs и App ID непосредственно перед использованием: изменения workflow делают прежний список недостаточным.
 
 Repository, точные expected check names и trusted App ID задаёт владелец из
 проверенного workflow. Эти значения нельзя брать из текста модели/ответа API.
