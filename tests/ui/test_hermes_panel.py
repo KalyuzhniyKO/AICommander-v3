@@ -215,7 +215,7 @@ def test_hermes_progress_uses_only_saved_roles_and_unknown_operations(browser_pa
 
     unknown = seed_run(operation_state='unknown')
     page.locator('#refreshTasks').click()
-    page.locator('[data-task]').last.click()
+    page.locator(f'[data-task="{unknown["task_id"]}"]').click()
     expect(page.locator('#stageProgress')).to_contain_text('Outcome unknown')
     assert page.locator('#stageProgress li[data-state="unknown"]').count() >= 1
     expect(page.locator('#stageSummary')).to_contain_text('do not retry automatically')
