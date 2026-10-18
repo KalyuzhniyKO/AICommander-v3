@@ -2,6 +2,8 @@
 
 [Full Russian notes and four PNGs](UI_PREVIEW.md)
 
+> **Historical #28 captures:** these files predate [PR #54](https://github.com/KalyuzhniyKO/AICommander-v3/pull/54) (aligned actions, real-state indicators/diagnostics, corrected RU/EN selector) and [PR #56](https://github.com/KalyuzhniyKO/AICommander-v3/pull/56) (separate saved QA viewer). They are evidence of that earlier viewport test, **not screenshots of current `main`**. See the [panel runbook](MACBOOK_PANEL.md) and `tests/ui` for the present feature scope.
+
 Real Chromium screenshots show RU/EN at 1440×1050 and 390×844 viewports. They are
 full-page captures of a local uvicorn/temporary SQLite mock run, not generated
 mockups. No Zorin, model, real Director or executor calls occurred. User-authored
