@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "run_id": "c773aa57ea884e0ea73088329031e79d",
+  "scope": "offline_trusted_fixture",
+  "workspace_id": "7baf68416f6d4ef6ad2d68fe9c9b6ac2",
+  "base_commit": "d0f6b7d607b65e5110e3e5035795182a6c4536b7",
+  "head": "d0f6b7d607b65e5110e3e5035795182a6c4536b7",
+  "evidence_sha256": "50785d52a562b9d0346ed1646ab2b3ecd62be9427bb519c8ce22980c8592211e",
+  "command_plan_sha256": "7aef4092cedd2fdb1e47b8acefe35f9aa91f4a9056261a8cf24c58185c891b92",
+  "evidence_complete": true,
+  "source_unchanged": true,
+  "diff": "diff --git a/notes/new.txt b/notes/new.txt\nnew file mode 100644\nindex 0000000..a6c4655\n--- /dev/null\n+++ b/notes/new.txt\n@@ -0,0 +1 @@\n+synthetic new file\ndiff --git a/sample.py b/sample.py\nindex b15b1b0..95cd691 100644\n--- a/sample.py\n+++ b/sample.py\n@@ -1 +1 @@\n-VALUE = 1\n+VALUE = 3\n",
+  "git_status": "A  notes/new.txt\nM  sample.py\n",
+  "required_checks": [
+    "pytest"
+  ],
+  "checks": [
+    {
+      "workspace_id": "7baf68416f6d4ef6ad2d68fe9c9b6ac2",
+      "command_id": "pytest",
+      "outcome": "exited",
+      "exit_code": 1,
+      "duration_seconds": 0.115,
+      "stdout": "F                                                                        [100%]\n=================================== FAILURES ===================================\n__________________________________ test_value __________________________________\n\n    def test_value():\n>       assert VALUE == 2\nE       assert 3 == 2\n\ntest_sample.py:3: AssertionError\n=========================== short test summary info ============================\nFAILED test_sample.py::test_value - assert 3 == 2\n1 failed in 0.01s\n",
+      "stderr": "",
+      "output_truncated": false,
+      "passed": false
+    }
+  ],
+  "qa_passed": false,
+  "ready_for_pr": false,
+  "independent_review": "required",
+  "owner_approval": "required",
+  "blockers": [
+    "required_checks_not_passed"
+  ],
+  "report_sha256": "56c9336d0c20367b352c0d88e22be71973a94c16ce215fad79ba588b0d894f9b"
+}

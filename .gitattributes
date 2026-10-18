@@ -1,0 +1,2 @@
+# Hashed synthetic review bundles must keep identical bytes after checkout.
+docs/local-run-examples/** text eol=lf

@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "run_id": "b50913967b7348c39ebef565df81c8f0",
+  "scope": "offline_trusted_fixture",
+  "workspace_id": "2b76f1ce60be40c28041d00724a2156e",
+  "base_commit": "8e393e51ae962b52221f185c5fee237acfb42686",
+  "head": "8e393e51ae962b52221f185c5fee237acfb42686",
+  "evidence_sha256": "4da0a87cc6214496cb55395eb1747feaba4853e3f88a72c328cedc1a5f57d26a",
+  "command_plan_sha256": "3af1e4974c2b445e207200b30ab669400ffd32d9dcc0da43ee0d6236888a3808",
+  "evidence_complete": true,
+  "source_unchanged": true,
+  "diff": "diff --git a/notes/new.txt b/notes/new.txt\nnew file mode 100644\nindex 0000000..a6c4655\n--- /dev/null\n+++ b/notes/new.txt\n@@ -0,0 +1 @@\n+synthetic new file\ndiff --git a/sample.py b/sample.py\nindex b15b1b0..c8fcecd 100644\n--- a/sample.py\n+++ b/sample.py\n@@ -1 +1 @@\n-VALUE = 1\n+VALUE = 2\n",
+  "git_status": "A  notes/new.txt\nM  sample.py\n",
+  "required_checks": [
+    "pytest",
+    "django_check",
+    "django_migrations"
+  ],
+  "checks": [
+    {
+      "workspace_id": "2b76f1ce60be40c28041d00724a2156e",
+      "command_id": "pytest",
+      "outcome": "exited",
+      "exit_code": 0,
+      "duration_seconds": 0.292,
+      "stdout": ".                                                                        [100%]\n1 passed in 0.00s\n",
+      "stderr": "",
+      "output_truncated": false,
+      "passed": true
+    },
+    {
+      "workspace_id": "2b76f1ce60be40c28041d00724a2156e",
+      "command_id": "django_check",
+      "outcome": "exited",
+      "exit_code": 0,
+      "duration_seconds": 0.197,
+      "stdout": "System check identified no issues (0 silenced).\n",
+      "stderr": "",
+      "output_truncated": false,
+      "passed": true
+    },
+    {
+      "workspace_id": "2b76f1ce60be40c28041d00724a2156e",
+      "command_id": "django_migrations",
+      "outcome": "exited",
+      "exit_code": 0,
+      "duration_seconds": 0.146,
+      "stdout": "No changes detected\n",
+      "stderr": "",
+      "output_truncated": false,
+      "passed": true
+    }
+  ],
+  "qa_passed": true,
+  "ready_for_pr": false,
+  "independent_review": "required",
+  "owner_approval": "required",
+  "blockers": [],
+  "report_sha256": "528b6d8b57f894a8a5955c206ca0f68ef8c4728fd31b7037cfba771421a5ccd1"
+}

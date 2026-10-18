@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "scope": "trusted_local_fixture",
+  "run_id": "b25f220629494927bbe4ba1abf9c111b",
+  "task_id": "fixture-task",
+  "workspace_id": "7baf68416f6d4ef6ad2d68fe9c9b6ac2",
+  "branch": "codex/offline-fixture-task-7baf68416f6d4ef6ad2d68fe9c9b6ac2",
+  "qa_run_id": "c773aa57ea884e0ea73088329031e79d",
+  "base_commit": "d0f6b7d607b65e5110e3e5035795182a6c4536b7",
+  "head": "d0f6b7d607b65e5110e3e5035795182a6c4536b7",
+  "evidence_sha256": "50785d52a562b9d0346ed1646ab2b3ecd62be9427bb519c8ce22980c8592211e",
+  "command_plan_sha256": "7aef4092cedd2fdb1e47b8acefe35f9aa91f4a9056261a8cf24c58185c891b92",
+  "report_sha256": "56c9336d0c20367b352c0d88e22be71973a94c16ce215fad79ba588b0d894f9b",
+  "qa_passed": false,
+  "edit_plan_sha256": "0164480ebfe50c8754125bd74c16de1d595ad9027338a9be3082e94154123ed5",
+  "edit_count": 2,
+  "state": "qa_failed",
+  "source_current_at_export": true,
+  "code_changed": true,
+  "developer_agent_executed": false,
+  "independent_review": "required",
+  "owner_approval": "required",
+  "ready_for_pr": false,
+  "ready_for_merge": false,
+  "files": {
+    "requirements.md": {
+      "sha256": "3ba12dc423caf6c7f201accbdc6f8c988361e7ccf5015c4d4e1f4c8f6030cbbd",
+      "bytes": 216
+    },
+    "changes.diff": {
+      "sha256": "52a5f8b683e36c3b50a5c036f6fb8d43a47d3089e6fa457017a1bebdb934143b",
+      "bytes": 286
+    },
+    "qa-report.json": {
+      "sha256": "204232d589b1e2354cff0ae8a0b25cd99f95622be9f409f1ac8708297b7f4b89",
+      "bytes": 1987
+    },
+    "review-request.md": {
+      "sha256": "ea7c8a55f3c31c5cfbf3cea5171c369d22303fa2f8490ff2b1050559ca314ffe",
+      "bytes": 754
+    }
+  }
+}
