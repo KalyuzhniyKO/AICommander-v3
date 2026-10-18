@@ -15,6 +15,9 @@
     'В legacy-раундах модели ещё не вызывались.':'No models have been called in legacy rounds yet.'
   };
   const selectors = [
+    ['label[for="languageSelect"]','Language'],
+    ['#languageSelect option[value="ru"]','Russian'],
+    ['#languageSelect option[value="en"]','English'],
     ['.hero .eyebrow','AICommander · Owner panel'],
     ['.hero h1','Your AI team'],
     ['.hero > div:first-child > p:nth-of-type(2)','Projects, work history and decisions in one place.'],
@@ -35,6 +38,10 @@
     ['#flowMode option[value="mock"]','Mock · test workflow'],
     ['#flowMode option[value="hermes"]','Hermes · stored planning'],
     ['#operationsHeading','Hermes operations'],
+    ['#stageHeading','Workflow stages'],
+    ['#diagnosticsHeading','Process diagnostics'],
+    ['#processActionsHeading','Process controls'],
+    ['#ownerActionsHeading','Owner decision'],
     ['#newRun','New run'],
     ['#stepTask','Next step'],
     ['#pauseTask','Pause'],
@@ -61,6 +68,10 @@
     tr(value) { return this.language === 'en' ? dictionary[value] || value : value; },
     apply() {
       document.documentElement.lang = this.language;
+      document.getElementById('languageSelect').setAttribute('aria-label',
+        this.language === 'en' ? 'Interface language' : 'Выбор языка интерфейса');
+      document.getElementById('stageProgress').setAttribute('aria-label',
+        this.language === 'en' ? 'Workflow stage status' : 'Статус этапов процесса');
       const thread = document.getElementById('directorMessages');
       if (thread) thread.setAttribute('aria-label', this.language === 'en' ? 'Mock process history' : 'История mock-процесса');
       for (const [selector, english] of selectors) {

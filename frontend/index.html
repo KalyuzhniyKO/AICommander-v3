@@ -2,7 +2,7 @@
 <html lang="ru">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AICommander — панель владельца</title><link rel="stylesheet" href="/style.css"></head>
 <body><main>
-<header class="hero"><div><p class="eyebrow">AICommander · Панель владельца</p><h1>Твоя AI-команда</h1><p>Проекты, история работы и решения в одном месте.</p><label class="locale-label" for="languageSelect">Язык / Language</label> <select id="languageSelect" aria-label="Язык интерфейса / Interface language"><option value="ru" selected>Русский</option><option value="en">English</option></select></div><div id="status" class="status" role="status" aria-live="polite">Подключение…</div></header>
+<header class="hero"><div><p class="eyebrow">AICommander · Панель владельца</p><h1>Твоя AI-команда</h1><p>Проекты, история работы и решения в одном месте.</p><label class="locale-label" for="languageSelect">Язык</label> <select id="languageSelect" aria-label="Выбор языка интерфейса"><option value="ru" selected>Русский</option><option value="en">English</option></select></div><div id="status" class="status" role="status" aria-live="polite">Подключение…</div></header>
 <p class="notice warning">Офлайн taskflow · Mock Director. Требования → проект → план создаются детерминированно. Согласование принимает mock-артефакты; код, модели, тесты задач и deploy не запускаются.</p>
 <div class="workspace">
 <aside class="card"><h2>Проекты</h2><label for="projectSelect">Текущий проект</label><select id="projectSelect"></select>
@@ -13,8 +13,16 @@
 <article class="card" id="taskDetail"><h2 id="taskTitle">Выбери задачу</h2><p id="taskMeta" class="meta"></p><pre id="description"></pre>
 <label for="flowMode">Режим истории</label><select id="flowMode"><option value="mock">Mock · тестовый процесс</option><option value="hermes">Hermes · сохранённое планирование</option></select><p id="modeHint" class="hint"></p>
 <label for="commentText">Комментарий к решению или следующему запуску</label><textarea id="commentText" maxlength="2000"></textarea>
-<div class="grid two run-settings"><div><label for="runSelect">Процесс и история</label><select id="runSelect"></select></div><div><label for="maxSteps">Лимит шагов нового процесса</label><input id="maxSteps" type="number" min="1" max="100" value="3"></div></div><button id="newRun">Новый процесс</button><p id="flowReason" role="status"></p>
-<div class="actions"><button id="runTask">Запустить процесс</button><button id="stepTask">Следующий шаг</button><button id="pauseTask">Пауза</button><button id="stopTask" class="danger">Отменить процесс</button><button id="approveTask" class="primary">Подтвердить</button><button id="rejectTask">Отклонить</button></div>
+<div class="grid two run-settings"><div><label for="runSelect">Процесс и история</label><select id="runSelect"></select></div><div><label for="maxSteps">Лимит шагов нового процесса</label><input id="maxSteps" type="number" min="1" max="100" value="3"></div></div><p id="flowReason" role="status"></p>
+<section class="workflow-status" aria-labelledby="stageHeading"><h3 id="stageHeading">Этапы процесса</h3>
+<ol id="stageProgress" class="stage-progress" aria-label="Статус этапов процесса"></ol>
+<p id="stageSummary" class="stage-summary" role="status" aria-live="polite"></p>
+<details id="diagnosticDetails" class="diagnostic-details"><summary id="diagnosticsHeading">Диагностика процесса</summary><dl id="processDiagnostics" class="diagnostic-grid"></dl></details></section>
+<div class="command-groups">
+<section class="action-group action-group--process" aria-labelledby="processActionsHeading"><h3 id="processActionsHeading">Управление процессом</h3><div class="action-buttons">
+<button id="newRun">Новый процесс</button><button id="runTask">Запустить процесс</button><button id="stepTask">Следующий шаг</button><button id="pauseTask">Пауза</button><button id="stopTask" class="danger">Отменить процесс</button></div></section>
+<section class="action-group action-group--owner" aria-labelledby="ownerActionsHeading"><h3 id="ownerActionsHeading">Решение владельца</h3><div class="action-buttons">
+<button id="approveTask" class="primary">Подтвердить</button><button id="rejectTask">Отклонить</button></div></section></div>
 <button id="retryRequest" hidden>Повторить запрос</button><p class="hint" id="actionHint">Каждый шаг создаёт один mock-артефакт. Отмена окончательная; для повторной работы создайте новый процесс. После отказа доступно продолжение без пересоздания артефактов.</p>
 <section class="director-preview" aria-labelledby="directorHeading"><h3 id="directorHeading">Ход работы · демонстрация директора</h3><p id="directorDisclaimer" class="hint">Это отображение сохранённого Mock Director. Настоящий Hermes и кодовый исполнитель не подключены.</p><div id="directorMessages" class="chat-thread" role="log" aria-live="polite" aria-label="История mock-процесса"></div></section>
 <h3>Этапы ролей</h3><div id="roleBoard" class="role-board"></div><h3 id="artifactsHeading">Типизированные mock-артефакты</h3><div id="artifacts"></div>
