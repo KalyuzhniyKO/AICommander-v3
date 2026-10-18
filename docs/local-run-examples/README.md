@@ -11,5 +11,6 @@ Fixture source/worktrees уже удалены тестами: verifier подт
 целостность примера. UUID/commit hashes/durations меняются при перегенерации.
 [Запуск и границы](../LOCAL_RUN.md).
 
-Для byte hashes этого поддерева .gitattributes принудительно сохраняет LF,
-включая checkout с core.autocrlf=true; это отдельно проверяется настоящим Git.
+Для byte hashes этого поддерева .gitattributes отключает EOL conversion:
+исходные LF/CRLF bytes сохраняются, включая checkout с core.autocrlf=true.
+Это отдельно проверяется настоящим Git.

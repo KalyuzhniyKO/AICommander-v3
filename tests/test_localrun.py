@@ -399,6 +399,8 @@ def test_example_bundles_remain_valid_with_autocrlf_checkout(tmp_path):
     source.mkdir()
     shutil.copyfile(project / '.gitattributes', source / '.gitattributes')
     shutil.copytree(project / 'docs/local-run-examples', source / 'docs/local-run-examples')
+    # Windows-generated evidence may contain CRLF: Git must preserve those bytes too.
+    (source / 'docs/local-run-examples/crlf-probe.txt').write_bytes(b'one\r\ntwo\r\n')
     git(source, 'init','-b','main')
     git(source, 'config','user.name','LF Fixture')
     git(source, 'config','user.email','fixture@example.invalid')
@@ -408,6 +410,7 @@ def test_example_bundles_remain_valid_with_autocrlf_checkout(tmp_path):
     # Later -c overrides helper's portable false: emulate a Windows Git checkout.
     git(source, '-c','core.autocrlf=true','worktree','add','--detach',str(checkout),'HEAD')
     examples = checkout / 'docs/local-run-examples'
+    assert (examples / 'crlf-probe.txt').read_bytes() == b'one\r\ntwo\r\n'
     for name in ('passing','failing'):
         assert verify_bundle(examples / name, allowed_root=examples)['integrity_valid']
     git(source, 'worktree','remove','--force',str(checkout))

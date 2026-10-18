@@ -183,8 +183,8 @@ settings/conftest/код должны быть заранее проверены
 
 [Успешный пакет](local-run-examples/passing/manifest.json) и
 [падающий пакет](local-run-examples/failing/manifest.json) получены реальными
-процессами на синтетических проектах, не Zorin/моделями. Для файлов примеров зафиксирован LF в .gitattributes; checkout с core.autocrlf=true
-проверяется настоящим Git. Fixture worktrees после
+процессами на синтетических проектах, не Zorin/моделями. Для файлов примеров отключено изменение переводов строк в .gitattributes;
+сохранность LF/CRLF при core.autocrlf=true проверяется настоящим Git. Fixture worktrees после
 тестов удалены явно; примеры не подтверждают актуальность live source.
 [QA summary](qa-local-run.json) отличает локальные/CI проверки от полной приёмки.
 
