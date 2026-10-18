@@ -268,7 +268,8 @@ def test_visual_acceptance_ru_en_desktop_mobile(browser_page):
             expect(page.locator('#stepTask')).to_be_disabled()
             expect(page.locator('.notice')).to_contain_text('Mock Director')
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
-            assert page.locator('.actions button').evaluate_all('buttons => buttons.every(b => { const r=b.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= innerWidth; })')
+            assert page.locator('.action-buttons button:not([hidden])').count() >= 5
+            assert page.locator('.action-buttons button:not([hidden])').evaluate_all('buttons => buttons.every(b => { const r=b.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= innerWidth; })')
             if os.environ.get('PANEL_VISUAL_DIR'):
                 directory = Path(os.environ['PANEL_VISUAL_DIR'])
                 directory.mkdir(parents=True, exist_ok=True)
