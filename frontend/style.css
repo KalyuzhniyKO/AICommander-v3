@@ -93,3 +93,45 @@ button.danger { background: #991b1b; border-color: #f87171; }
 [hidden] { display: none !important; }
 
 .run-settings.hermes-settings { grid-template-columns: 1fr; }
+
+
+/* The taskflow indicator is derived only from persisted snapshot/operations. */
+.workflow-status { margin: 18px 0; padding: 16px; border: 1px solid #415575; border-radius: 14px; background: #0e1728; min-width: 0; }
+.workflow-status h3, .action-group h3 { margin: 0 0 12px; font-size: 1rem; }
+.stage-progress { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 135px), 1fr)); gap: 9px; padding: 0; margin: 0; list-style: none; }
+.stage-indicator { min-width: 0; min-height: 54px; display: flex; align-items: center; gap: 9px; padding: 10px 12px; border-radius: 10px; border: 1px solid #46556f; background: #1c283a; overflow-wrap: anywhere; }
+.stage-indicator::before { content: ''; display: inline-block; flex: 0 0 12px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #a8b3c8; background: #64748b; }
+.stage-indicator[data-state="active"] { border-color: #fbbf24; }
+.stage-indicator[data-state="active"]::before { background: #fbbf24; border-color: #fef3c7; }
+.stage-indicator[data-state="completed"] { border-color: #34d399; }
+.stage-indicator[data-state="completed"]::before { background: #10b981; border-color: #d1fae5; }
+.stage-indicator[data-state="error"] { border-color: #f87171; }
+.stage-indicator[data-state="error"]::before { background: #ef4444; border-color: #fee2e2; }
+.stage-indicator[data-state="waiting"] { border-color: #60a5fa; }
+.stage-indicator[data-state="waiting"]::before { background: #3b82f6; border-color: #dbeafe; }
+.stage-indicator[data-state="unknown"] { border-color: #fb923c; border-style: dashed; }
+.stage-indicator[data-state="unknown"]::before { background: #fb923c; border-color: #ffedd5; }
+.stage-indicator span { min-width: 0; }
+.stage-summary { margin: 14px 0 0; color: #dbeafe; font-size: .92rem; overflow-wrap: anywhere; }
+.diagnostic-details { margin-top: 10px; }
+.diagnostic-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 9px; padding: 10px 0 0; margin: 0; }
+.diagnostic-grid div { min-width: 0; padding: 9px; border: 1px solid #364760; background: #101b2e; border-radius: 8px; overflow-wrap: anywhere; }
+.diagnostic-grid dt { color: #bfdbfe; font-size: .82rem; }
+.diagnostic-grid dd { margin: 4px 0 0; font-size: .9rem; }
+.command-groups { display: grid; gap: 16px; margin: 18px 0; min-width: 0; }
+.action-group { min-width: 0; }
+.action-group .action-buttons { display: grid; gap: 10px; min-width: 0; }
+.action-group--process .action-buttons { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.action-group--owner .action-buttons { grid-template-columns: repeat(2, minmax(0, 210px)); justify-content: end; }
+.action-group--process.hermes-actions .action-buttons { grid-template-columns: minmax(160px, 220px); }
+.action-buttons button { margin: 0; min-height: 55px; width: 100%; padding: 9px; line-height: 1.3; overflow-wrap: anywhere; text-align: center; }
+@media (max-width: 1199px) {
+  .action-group--process .action-buttons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .workflow-status { padding: 12px; }
+  .stage-progress { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .action-group--process .action-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .action-group--owner .action-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .action-group--process.hermes-actions .action-buttons { grid-template-columns: minmax(0, 1fr); }
+}
