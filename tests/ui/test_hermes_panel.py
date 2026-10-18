@@ -9,7 +9,7 @@ import pytest
 pytestmark = pytest.mark.skipif(os.environ.get('RUN_UI_TESTS') != '1', reason='Opt-in Chromium tests')
 
 
-def seed_run(*, task_id=None, operation_state=None, failed=False):
+def seed_run(*, task_id=None, operation_state=None, failed=False, include_architect=True):
     from backend.app import main
     from backend.app.storage.db import connect, init_db
     from backend.app.storage.repositories import Repository
@@ -33,7 +33,7 @@ def seed_run(*, task_id=None, operation_state=None, failed=False):
         init_db(conn)
         if task_id is None:task_id=Repository(conn).create_task('ТЕСТОВЫЕ ДАННЫЕ: история Hermes без вызова модели')['id']
         flow=Taskflow(conn,FixtureDirector(),mode='hermes')
-        run=flow.create(task_id,HermesCreateRun(idempotency_key='fixture-create',include_architect=True,max_steps=4))
+        run=flow.create(task_id,HermesCreateRun(idempotency_key='fixture-create',include_architect=include_architect,max_steps=4 if include_architect else 3))
         run=flow.apply(run.run_id,Command(idempotency_key='fixture-start',expected_version=1,action='start'))
         if failed:
             run=flow.apply(run.run_id,Command(idempotency_key='fixture-fail',expected_version=run.version,action='fail',reason='ТЕСТ: ошибка роли, результат не принят'))
@@ -43,7 +43,7 @@ def seed_run(*, task_id=None, operation_state=None, failed=False):
                 (run.run_id,run.version,run.model_dump_json(),operation_state))
             conn.commit()
         else:
-            for index in range(4):run=flow.apply(run.run_id,Command(idempotency_key='fixture-step-'+str(index),expected_version=run.version,action='step'))
+            for index in range(4 if include_architect else 3):run=flow.apply(run.run_id,Command(idempotency_key='fixture-step-'+str(index),expected_version=run.version,action='step'))
         return run.model_dump(mode='json')
 
 
@@ -195,3 +195,30 @@ def test_empty_or_unavailable_v2_history_never_falls_back_to_mock(browser_page):
     expect(page.locator('#status')).to_have_text('fixture unavailable')
     expect(page.locator('#artifacts > details')).to_have_count(0)
     expect(page.locator('#stepTask')).to_be_disabled()
+
+
+def test_hermes_progress_uses_only_saved_roles_and_unknown_operations(browser_page):
+    """Hermes Reviewer is planning-only; an unknown external operation is never green."""
+    page, expect = browser_page
+    saved = seed_run(include_architect=False)
+    open_hermes(page, expect)
+    expect(page.locator('#stageProgress')).to_contain_text('Ревьюер плана')
+    expect(page.locator('#stageProgress')).not_to_contain_text('Архитектор')
+    assert page.locator('#stageProgress li').count() == 6
+    expect(page.locator('#stageProgress li').nth(4)).to_have_attribute('data-state', 'waiting')
+    expect(page.locator('#stageSummary')).to_contain_text('код и QA не проверены')
+    expect(page.locator('#approveTask')).to_be_hidden()
+    page.locator('#languageSelect').select_option('en')
+    expect(page.locator('#stageProgress')).to_contain_text('Plan reviewer')
+    expect(page.locator('#stageSummary')).to_contain_text('code and QA not verified')
+    assert page.request.get('/taskflow/v2/runs/' + str(saved['run_id'])).json() == saved
+
+    unknown = seed_run(operation_state='unknown')
+    page.locator('#refreshTasks').click()
+    page.locator('[data-task]').last.click()
+    expect(page.locator('#stageProgress')).to_contain_text('Outcome unknown')
+    assert page.locator('#stageProgress li[data-state="unknown"]').count() >= 1
+    expect(page.locator('#stageSummary')).to_contain_text('do not retry automatically')
+    expect(page.locator('#processDiagnostics')).to_contain_text('Unknown outcome')
+    expect(page.locator('#stageProgress li').last).not_to_have_attribute('data-state', 'completed')
+    assert page.request.get('/taskflow/v2/runs/' + str(unknown['run_id'])).json() == unknown
