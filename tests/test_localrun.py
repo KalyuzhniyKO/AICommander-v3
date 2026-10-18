@@ -99,15 +99,15 @@ def test_real_passing_chain_and_stale_source_plan_bundle_detection(setup):
     assert manifest['independent_review'] == manifest['owner_approval'] == 'required'
     assert not manifest['developer_agent_executed'] and manifest['code_changed']
     assert session.is_current(result)
-    report = json.loads((result.bundle / 'qa-report.json').read_text())
+    report = json.loads((result.bundle / 'qa-report.json').read_text(encoding='utf-8'))
     assert len(report['checks']) == 3 and all(c['exit_code'] == 0 for c in report['checks'])
     assert '1 passed' in report['checks'][0]['stdout']
     assert 'No changes detected' in report['checks'][2]['stdout']
-    diff = (result.bundle / 'changes.diff').read_text()
+    diff = (result.bundle / 'changes.diff').read_text(encoding='utf-8')
     assert '+VALUE = 2' in diff and 'notes/new.txt' in diff and 'new file mode' in diff
     assert not (Path(result.workspace.path) / 'never-open.sqlite3').exists()
-    assert 'literal-sensitive' not in (result.bundle / 'requirements.md').read_text()
-    assert (source / 'sample.py').read_text() == 'OWNER_WORK = True\n'
+    assert 'literal-sensitive' not in (result.bundle / 'requirements.md').read_text(encoding='utf-8')
+    assert (source / 'sample.py').read_text(encoding='utf-8') == 'OWNER_WORK = True\n'
     assert git(source, 'rev-parse', 'HEAD') == head and (source / '.git/index').read_bytes() == index
     assert git(source, 'branch', '--show-current').strip() == 'main'
     if os.name != 'nt':
@@ -135,9 +135,9 @@ def test_real_failing_chain_retains_exit_code_diff_and_review_block(setup):
     result = session.run(task(3))
     assert result.state == 'qa_failed' and not result.qa_passed
     manifest = verify_bundle(result.bundle, allowed_root=setup[2])['manifest']
-    report = json.loads((result.bundle / 'qa-report.json').read_text())
+    report = json.loads((result.bundle / 'qa-report.json').read_text(encoding='utf-8'))
     assert report['checks'][0]['exit_code'] == 1 and '1 failed' in report['checks'][0]['stdout']
-    assert '+VALUE = 3' in (result.bundle / 'changes.diff').read_text()
+    assert '+VALUE = 3' in (result.bundle / 'changes.diff').read_text(encoding='utf-8')
     assert manifest['state'] == 'qa_failed' and not manifest['ready_for_pr']
     assert session.is_current(result)  # current evidence is not a passing QA verdict
     example(result, 'failing')
@@ -284,7 +284,7 @@ def saved_bundle(tmp_path):
                                    'deep_json', 'size_limit', 'bool_size', 'invalid_state', 'future_qa', 'inconsistent_exit'])
 def test_bundle_tampering_partial_future_and_bounds_fail_closed(saved_bundle, tmp_path, mode):
     path = saved_bundle / 'manifest.json'
-    manifest = json.loads(path.read_text())
+    manifest = json.loads(path.read_text(encoding='utf-8'))
     if mode == 'modified': (saved_bundle / 'requirements.md').write_text('changed')
     elif mode == 'missing': (saved_bundle / 'qa-report.json').unlink()
     elif mode == 'extra': (saved_bundle / 'extra.txt').write_text('extra')
@@ -301,7 +301,7 @@ def test_bundle_tampering_partial_future_and_bounds_fail_closed(saved_bundle, tm
         with (saved_bundle / 'changes.diff').open('wb') as stream: stream.truncate(8 * 1024 * 1024 + 1)
     elif mode in ('bad_report', 'future_qa', 'inconsistent_exit'):
         qa = saved_bundle / 'qa-report.json'
-        report = json.loads(qa.read_text())
+        report = json.loads(qa.read_text(encoding='utf-8'))
         if mode == 'bad_report': report['qa_passed'] = False
         else:
             if mode == 'future_qa': report['schema_version'] = 2
@@ -319,7 +319,7 @@ def test_bundle_tampering_partial_future_and_bounds_fail_closed(saved_bundle, tm
 def test_recomputed_checksums_are_not_identity_or_permission(saved_bundle, tmp_path):
     manifest_path = saved_bundle / 'manifest.json'
     original_digest = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
-    manifest = json.loads(manifest_path.read_text())
+    manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
     changed = saved_bundle / 'requirements.md'
     changed.write_text('Forged requirements; checksums alone are not approval.')
     raw = changed.read_bytes()
@@ -370,8 +370,8 @@ def test_one_command_demo_runs_real_django_and_never_reuses_existing_root(tmp_pa
     root = tmp_path / 'new-demo'
     session, result = run_demo(root, direct_python)
     assert result.state == 'awaiting_review' and result.qa_passed and session.is_current(result)
-    assert 'inventory.py' in (result.bundle / 'changes.diff').read_text()
-    report = json.loads((result.bundle / 'qa-report.json').read_text())
+    assert 'inventory.py' in (result.bundle / 'changes.diff').read_text(encoding='utf-8')
+    report = json.loads((result.bundle / 'qa-report.json').read_text(encoding='utf-8'))
     assert len(report['checks']) == 3 and all(c['exit_code'] == 0 for c in report['checks'])
     original = (root / 'source/inventory.py').read_bytes()
     with pytest.raises(FileExistsError): run_demo(root, direct_python)
@@ -387,7 +387,7 @@ def test_failing_demo_cli_preserves_real_error_and_bundle(tmp_path, direct_pytho
     value = json.loads(result.stdout)
     manifest = verify_bundle(root / value['bundle'], allowed_root=root)['manifest']
     assert value['state'] == manifest['state'] == 'qa_failed' and not manifest['ready_for_pr']
-    report = json.loads((root / value['bundle'] / 'qa-report.json').read_text())
+    report = json.loads((root / value['bundle'] / 'qa-report.json').read_text(encoding='utf-8'))
     assert report['checks'][0]['exit_code'] == 1 and all(c['exit_code'] == 0 for c in report['checks'][1:])
     git(root / 'source','worktree','remove','--force',str(root/'worktrees'/value['workspace_id']))
     git(root / 'source','branch','-D',value['branch'])
