@@ -38,5 +38,15 @@ Zorin: running Hermes/OmniRouter + isolated execution of workers/staging.
 Lenovo Omarchy: optional extra development worker, not required.
 Use authenticated service over VPN/SSH only after security is implemented. No internet-exposed unauthenticated UI. Don't grant agents production secrets or direct write access to deployment endpoints.
 
+## Python and macOS compatibility (mandatory)
+
+Full rules and acceptance criteria: [Python/macOS compatibility policy](PYTHON_COMPATIBILITY.en.md) ([Русская версия](PYTHON_COMPATIBILITY.md)), [Issue #58](https://github.com/KalyuzhniyKO/AICommander-v3/issues/58).
+
+- Keep Python 3.14 in GitHub Actions and test all **declared supported** Python versions on Ubuntu/Windows. Evaluate each new stable Python separately and expand CI after verifiable compatibility work.
+- Require real backend and Chromium/Playwright UI tests on **macOS ARM64**; this is not direct Safari or MacBook Air M4 hardware validation.
+- Repair project and, where possible, dependency incompatibilities with regression coverage. Never weaken CI merely to obtain a passing badge; Python or package constraints need documented technical evidence.
+- Current baseline: **Python 3.11–3.14** on Ubuntu/Windows and **Python 3.14** on macOS ARM64. Python **3.15** (stable as of 2026-10-09) requires independent validation and is not yet claimed as supported.
+- Version upper bounds in test-only packages (notably `Django<5.3` for QA fixtures) require a technical rationale and review plan; do not transfer such bounds to application runtime without evidence.
+
 ## Acceptance for first working product
 From MacBook, submit one harmless change to a test checkout of `warehouse_config`; Director assigns analyst/coder/QA/reviewer; actual files change in isolated branch; pytest/Django checks run and produce logs; draft PR is shown; owner approves/rejects; no unintended changes to production.
