@@ -100,7 +100,15 @@ def run_bridge(config, payload, cancelled):
         if not isinstance(data,dict) or not data.get('ok'):
             if isinstance(data,dict) and data.get('dispatched') is False:
                 raise RuntimeError('Hermes preflight failed')
-            raise UncertainOperation('Hermes did not confirm a completed result')
+            failure=UncertainOperation('Hermes did not confirm a completed result')
+            status=data.get('http_status') if isinstance(data,dict) else None
+            if type(status) is int and status==429:
+                delay=data.get('retry_after_seconds')
+                if type(delay) is not int or not 0<=delay<=86400:delay=None
+                failure.budget_outcome=Outcome(kind='quota',http_status=429,retry_after_seconds=delay)
+            elif type(status) is int and status in {400,401,403,404,405,413,422}:
+                failure.budget_outcome=Outcome(kind='rejected',http_status=status)
+            raise failure from None
         if process.returncode != 0:
             raise UncertainOperation('Hermes process did not finish normally')
         return data

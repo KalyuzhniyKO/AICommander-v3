@@ -150,3 +150,5 @@ passing/failing demo is available. No Codex CLI/models or runtime HTTP/UI/taskfl
 wiring; independent review/owner approval remain required and readiness False.
 
 [Saved QA bundle viewer](docs/LOCAL_REVIEW_PANEL.en.md): optional read-only panel section for local fixture reports/diff, with integrity checks. Not current-source verification or independent review.
+
+[Runtime spending](docs/RUNTIME_SPENDING.en.md): zero/default-deny API budgets, scoped owner approvals and reservations wired to current inference paths. No live pricing/caps acceptance is claimed.

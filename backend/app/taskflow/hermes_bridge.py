@@ -1,6 +1,9 @@
 """Executed by the owner's installed Hermes Python. No source is copied from Hermes."""
 import contextlib
 from decimal import Decimal, InvalidOperation
+from email.utils import parsedate_to_datetime
+import math
+import time
 from hashlib import sha256
 import io
 import json
@@ -21,6 +24,18 @@ class BridgePolicyError(BaseException):
 class _QuietBuffer(io.StringIO):
     def write(self,text):return len(text)
     def flush(self):pass
+
+
+def _retry_after(value):
+    if value is None:return None
+    try:delay=float(value)
+    except (ValueError,TypeError):
+        try:
+            stamp=parsedate_to_datetime(value)
+            if stamp.tzinfo is None:return None
+            delay=stamp.timestamp()-time.time()
+        except (ValueError,TypeError,OverflowError):return None
+    return min(86400,max(0,math.ceil(delay))) if math.isfinite(delay) else None
 
 
 def _usage(captures):
@@ -137,6 +152,7 @@ def main():
                 dispatched['request_check']='allowed'
                 response=original_send(client,http_request)
                 dispatched['http_status']=response.status_code
+                dispatched['retry_after_seconds']=_retry_after(response.headers.get('Retry-After'))
                 capture={'data':bytearray(),'overflow':False}
                 captures.append(capture)
                 def retain(chunk):
@@ -209,7 +225,7 @@ def main():
     except BaseException as exc:
         print(json.dumps({'ok':False,'dispatched':bool(dispatched['count']),'category':'bridge_failed',
                           'phase':phase,'error_type':type(exc).__name__,
-                          'http_status':dispatched['http_status'],'request_check':dispatched['request_check'],
+                          'http_status':dispatched['http_status'],'retry_after_seconds':dispatched.get('retry_after_seconds'),'request_check':dispatched['request_check'],
                           'result_status':dispatched.get('result_status'),'agent_count':dispatched.get('agent_count'),
                           'failure_reason':dispatched.get('failure_reason'),'error_flags':dispatched.get('error_flags'),
                           'error_terms':dispatched.get('error_terms')}));return 1

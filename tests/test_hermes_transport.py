@@ -153,3 +153,10 @@ def test_stream_usage_keeps_only_confirmed_counters_and_never_exports_private_fi
     assert _usage(chunks)=={'prompt_tokens':4,'completion_tokens':2,'cost':'0'}
     chunks[0]['overflow']=True
     assert _usage(chunks) is None
+
+
+def test_sdk_quota_preserves_structured_retry_after_without_replay(tmp_path,monkeypatch):
+    config=script(tmp_path,monkeypatch,"print('{\"ok\":false,\"dispatched\":true,\"http_status\":429,\"retry_after_seconds\":600}')")
+    with pytest.raises(UncertainOperation) as error:hermes.run_bridge(config,{},lambda:False)
+    assert error.value.budget_outcome.kind=='quota'
+    assert error.value.budget_outcome.retry_after_seconds==600

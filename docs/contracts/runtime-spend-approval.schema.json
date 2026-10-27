@@ -1,0 +1,80 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "approval_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "scope": {
+      "enum": [
+        "global",
+        "project",
+        "task"
+      ],
+      "title": "Scope",
+      "type": "string"
+    },
+    "task_id": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Task Id"
+    },
+    "amount_micro_usd": {
+      "maximum": 1000000000000,
+      "minimum": 0,
+      "title": "Amount Micro Usd",
+      "type": "integer"
+    },
+    "allow_paid": {
+      "default": false,
+      "title": "Allow Paid",
+      "type": "boolean"
+    },
+    "reference": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference"
+    },
+    "expected_revision": {
+      "minimum": 0,
+      "title": "Expected Revision",
+      "type": "integer"
+    },
+    "expected_policy_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Expected Policy Sha256",
+      "type": "string"
+    },
+    "confirm": {
+      "title": "Confirm",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "approval_id",
+    "scope",
+    "amount_micro_usd",
+    "expected_revision",
+    "expected_policy_sha256",
+    "confirm"
+  ],
+  "title": "Approval",
+  "type": "object"
+}
