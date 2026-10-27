@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from backend.app.budgets.runtime import RuntimeSpend, ProviderBudget
 from backend.app.config import DEFAULT_MODELS_PATH, Settings, ModelConfigError, load_model_config, models_config_missing_payload
 from backend.app.orchestration.fallback import split_model_ref, provider_for, _friendly_provider_error
 from backend.app.providers.base import ChatMessage, ProviderError
@@ -76,6 +77,7 @@ def check_models(settings: Settings, repository: Repository, config_path: Path |
     for role, provider_name, model_id in configured_models:
         try:
             provider = provider_for(provider_name, openrouter, omniroute)
+            provider.budget = ProviderBudget(RuntimeSpend(repository.conn,settings),task_id=None,origin='model_check',role=role)
             result = provider.chat(model_id=model_id, messages=messages, timeout_seconds=settings.default_timeout_seconds)
             repository.update_model_status(provider_name, model_id, role, "available", response_time_ms=result.response_time_ms)
             results.append({
@@ -89,12 +91,13 @@ def check_models(settings: Settings, repository: Repository, config_path: Path |
         except ProviderError as exc:
             friendly = (_friendly_provider_error(str(exc), exc.category, provider_name)
                         if provider_name == "omniroute" else _friendly_error(str(exc), exc.category))
-            repository.update_model_status(provider_name, model_id, role, "failed", last_error=friendly)
+            status = "blocked_budget" if exc.category == "spend_blocked" else "failed"
+            repository.update_model_status(provider_name, model_id, role, status, last_error=friendly)
             results.append({
                 "role": role,
                 "provider": provider_name,
                 "model_id": model_id,
-                "status": "failed",
+                "status": status,
                 "last_error": friendly,
                 "response_time_ms": None,
             })

@@ -1,5 +1,7 @@
 """Durable steps: reserve, call the configured Director outside the lock, commit."""
 import json
+
+from backend.app.budgets.runtime import SpendDenied
 from uuid import uuid4
 
 from .models import HermesProvenance
@@ -39,6 +41,17 @@ class StepOperations:
                 created_at,updated_at FROM taskflow_operations WHERE run_id=? ORDER BY created_at,id""", (run_id,))]
 
     def step(self, run_id, request):
+        try:
+            return self._step(run_id,request)
+        except SpendDenied as error:
+            # Reservation failed before dispatch; its parent transaction rolled back.
+            runtime = getattr(self.flow.director,'spending',None)
+            if runtime is not None:
+                row = self.flow._run(run_id)
+                runtime.event(row['task_id'],'omniroute',self.flow.director.config.model,error.code)
+            raise FlowError(error.code,'Запрос модели не отправлен: проверьте тарифы и подтверждение бюджета.',402) from None
+
+    def _step(self, run_id, request):
         key = digest(request.idempotency_key)
         fingerprint = digest({'endpoint': 'commands', **request.model_dump()})
         worker = uuid4().hex
@@ -74,6 +87,10 @@ class StepOperations:
                 if len(input_json.encode()) + len(goal.encode()) > MAX_OPERATION_BYTES:
                     raise FlowError('operation_input_too_large', 'Вход операции превышает допустимый размер', 422)
                 operation_id, execute = uuid4().hex, True
+                reserve = getattr(self.flow.director,'reserve_budget',None)
+                if callable(reserve):
+                    reserve(self.conn,operation_id=operation_id,task_id=row['task_id'],run_id=run_id,
+                            role=self.flow._next_role(run_id),goal=goal,inputs=snapshot.artifacts)
                 self.conn.execute("""INSERT INTO taskflow_operations(id,run_id,key_hash,request_hash,expected_version,
                     role,goal,input_json,reason,state,worker_hash) VALUES(?,?,?,?,?,?,?,?,?,'running',?)""",
                     (operation_id,run_id,key,fingerprint,request.expected_version,self.flow._next_role(run_id),goal,input_json,redact(request.reason),digest(worker)))
@@ -111,6 +128,8 @@ class StepOperations:
                     failed = False
                 except UncertainOperation:
                     with self.flow.transaction(write=True):
+                        finish = getattr(self.flow.director,'finish_budget',None)
+                        if callable(finish):finish(operation_id)
                         current=self._operation(operation_id)
                         cancelled=bool(current['cancel_requested'])
                         if cancelled:
@@ -120,6 +139,12 @@ class StepOperations:
                     if cancelled:
                         return self.finish(operation_id)
                     raise FlowError('operation_unknown', 'Исход вызова Hermes неизвестен; автоматического повтора нет') from None
+                except SpendDenied as error:
+                    runtime = getattr(self.flow.director,'spending',None)
+                    if runtime is not None:
+                        runtime.event(self.flow._run(run_id)['task_id'],
+                                      'omniroute',self.flow.director.config.model,error.code,operation_id)
+                    result = None
                 except Exception:
                     # Arbitrary exception text is never stored. A process crash is not caught.
                     result = None
@@ -127,6 +152,8 @@ class StepOperations:
                 operation = self._operation(operation_id)
                 if operation['state'] != 'running' or operation['worker_hash'] != digest(worker):
                     raise FlowError('operation_unknown', 'Рабочая попытка больше не владеет операцией')
+                finish = getattr(self.flow.director,'finish_budget',None)
+                if callable(finish):finish(operation_id)
                 self.conn.execute("""UPDATE taskflow_operations SET state='result_ready',result_json=?,failed=?,provenance_json=?,
                     updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?""", (json.dumps(result),int(failed),json.dumps(provenance if not failed else {}),operation_id))
         return self.finish(operation_id)

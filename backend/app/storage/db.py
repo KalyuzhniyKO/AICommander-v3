@@ -19,7 +19,10 @@ def connect(db_path:Path)->sqlite3.Connection:
     return conn
 
 def init_db(conn:sqlite3.Connection)->None:
+    from backend.app.budgets.runtime_schema import initialize_runtime_budget, preflight_runtime_budget
+    preflight_runtime_budget(conn)
     conn.executescript(SCHEMA)
     conn.commit()
     migrate_taskflow(conn)
     migrate_panel(conn)
+    initialize_runtime_budget(conn)

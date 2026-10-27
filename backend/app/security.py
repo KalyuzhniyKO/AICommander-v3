@@ -61,6 +61,7 @@ async def secure_request(request, call_next):
         origin = request.headers.get("origin")
         if request.headers.get("x-aicommander-request") != "1" or (origin and origin != str(request.base_url).rstrip("/")):
             return _deny("Запрос отклонён защитой CSRF", 403)
+    request.state.owner = username
     response = await call_next(request)
     return _harden(response)
 

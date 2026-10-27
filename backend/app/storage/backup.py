@@ -22,7 +22,8 @@ _monotonic=time.monotonic
 APP_TABLES={'tasks','rounds','role_outputs','model_errors','model_status'}
 FLOW_TABLES={'taskflow_runs','taskflow_stages','taskflow_artifacts','taskflow_events','taskflow_commands'}
 BUDGET_TABLES={'budget_accounts','budget_requests','budget_version'}
-COUNT_TABLES=APP_TABLES|FLOW_TABLES|BUDGET_TABLES|{'taskflow_operations','projects','owner_decisions'}
+SPEND_TABLES={'spend_migrations','spend_scopes','spend_permissions','spend_events','spend_approvals'}
+COUNT_TABLES=APP_TABLES|FLOW_TABLES|BUDGET_TABLES|SPEND_TABLES|{'taskflow_operations','projects','owner_decisions'}
 
 
 class BackupError(Exception):
@@ -140,19 +141,24 @@ def _inspect(path,deadline,max_bytes):
             if len(flow)>=2 and 'taskflow_operations' not in tables:raise BackupError('unsupported_schema')
             if not flow and FLOW_TABLES & tables:raise BackupError('unsupported_schema')
             if budget and bv!=[1]:raise BackupError('unsupported_schema')
+            spending=_versions(conn,tables,'spend_migrations')
+            if SPEND_TABLES & tables and (not SPEND_TABLES<=tables or spending!=[1] or not budget):raise BackupError('unsupported_schema')
             counts={name:conn.execute('SELECT COUNT(*) FROM '+name).fetchone()[0] for name in sorted(COUNT_TABLES & tables)}
             active={}
             for table,column,states in (
                 ('tasks','status',('running','stopping')),
                 ('taskflow_runs','status',('running',)),
                 ('taskflow_operations','state',('running','result_ready','unknown')),
-                ('budget_requests','state',('reserved','dispatched','unknown'))):
+                ('budget_requests','state',('reserved','dispatched','unknown')),
+                ('spend_permissions','state',('reserved','dispatched','unknown'))):
                 if table in tables:
                     for state in states:
                         active[table+'.'+state]=conn.execute('SELECT COUNT(*) FROM '+table+' WHERE '+column+'=?',(state,)).fetchone()[0]
             deadline.check()
+            versions={'taskflow':flow,'panel':panel,'budget':bv}
+            if spending:versions['spending']=spending
             return {'kind':'app_and_budget' if app and budget else 'app' if app else 'budget',
-                'versions':{'taskflow':flow,'panel':panel,'budget':bv},'row_counts':counts,
+                'versions':versions,'row_counts':counts,
                 'unresolved_counts':active,'operator_recovery_required':any(active.values())}
         except sqlite3.Error:
             deadline.check()

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import List, Dict
+from ..budgets.models import Usage
 
 
 @dataclass
@@ -19,6 +20,8 @@ class ChatResult:
     content: str
     response_time_ms: int
     raw: dict | None = None
+    usage: Usage | None = None
+    reported_usage: dict | None = None
 
 
 class ProviderError(Exception):

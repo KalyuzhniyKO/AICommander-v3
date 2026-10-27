@@ -65,7 +65,7 @@ def test_config_env_bounds_do_not_echo_invalid_values(monkeypatch):
     assert str(exc.value)=='Invalid Hermes configuration'
 
 
-@pytest.mark.parametrize('violation',[None,'context','model','schema','repeat'])
+@pytest.mark.parametrize('violation',[None,'context','model','schema','repeat','spend_tokens','spend_payload','multiplier','fallback','server_tools'])
 def test_bridge_checks_actual_http_payload_before_dispatch(tmp_path,violation):
     """Execute the real bootstrap against an approved fake SDK and MockTransport."""
     source=tmp_path/'sdk';(source/'pm').mkdir(parents=True);(source/'tools').mkdir()
@@ -78,7 +78,7 @@ import httpx
 from pathlib import Path
 def reply(request):
  with Path(__file__).with_name("http-dispatches").open("a") as trace:trace.write(request.method+"\\n")
- return httpx.Response(200,json={"ok":True})
+ return httpx.Response(200,stream=httpx.ByteStream(b'{"usage":{"prompt_tokens":3,"completion_tokens":2,"cost":"0.000001","private":"must-not-export"}}'))
 class AIAgent:
  count=0
  def __init__(self,**kwargs):
@@ -100,10 +100,15 @@ VIOLATION = '''+repr(violation)+'''
 def delegate_task(goal,context,parent_agent,background):
  child=AIAgent(**parent_agent.kwargs)
  body={'model':child.model,'messages':[{'role':'user','content':context}],
-       'response_format':child.request_overrides['response_format']}
+       'response_format':child.request_overrides['response_format'],'max_tokens':child.max_tokens}
  if VIOLATION=='context':body['messages']=[]
  if VIOLATION=='model':body['model']='synthetic/other'
  if VIOLATION=='schema':body.pop('response_format')
+ if VIOLATION=='spend_tokens':body['max_tokens']*=2
+ if VIOLATION=='spend_payload':body['messages'][0]['content']+='x'*20000
+ if VIOLATION=='multiplier':body['n']=2
+ if VIOLATION=='fallback':body['models']=['expensive/other']
+ if VIOLATION=='server_tools':body['functions']=[{'name':'expensive-tool'}]
  child.client.post(child.base_url+'/chat/completions',json=body)
  if VIOLATION=='repeat':child.client.post(child.base_url+'/chat/completions',json=body)
  return json.dumps({'results':[{'status':'completed','summary':'{}'}]})
@@ -112,9 +117,11 @@ def delegate_task(goal,context,parent_agent,background):
     payload={'source':str(source),'expected_commit':'f'*40,'base_url':'http://127.0.0.1:9/v1',
              'api_key':'synthetic-private-stdin','model':'synthetic/model','max_tokens':64,
              'budget_seconds':8,'operation_id':'fixture-operation','instruction':'synthetic',
-             'context':'exact synthetic handoff','output_schema':hermes.output_schema('analyst')}
+             'context':'exact synthetic handoff','output_schema':hermes.output_schema('analyst'),
+             'spend_caps':{'max_payload_bytes':16384,'max_output_tokens':64}}
     if violation is None:
         result=hermes.run_bridge(config,payload,lambda:False)
+        assert result['usage']=={'prompt_tokens':3,'completion_tokens':2,'cost':'0.000001'}
         assert result['provenance']['inference_requests']==1
         assert result['provenance']['parent_session_id']!=result['provenance']['child_session_id']
     else:
@@ -138,3 +145,11 @@ def test_cancellation_probe_failure_after_launch_is_uncertain(tmp_path,monkeypat
     with pytest.raises(UncertainOperation) as exc:
         hermes.run_bridge(config,{},broken_probe)
     assert 'synthetic-private-database-error' not in str(exc.value)
+
+
+def test_stream_usage_keeps_only_confirmed_counters_and_never_exports_private_fields():
+    from backend.app.taskflow.hermes_bridge import _usage
+    chunks=[{'overflow':False,'data':bytearray(b'data: {"choices":[]}\n\ndata: {"usage":{"prompt_tokens":4,"completion_tokens":2,"cost":0,"private":"hidden"}}\n\ndata: [DONE]\n')}]
+    assert _usage(chunks)=={'prompt_tokens':4,'completion_tokens':2,'cost':'0'}
+    chunks[0]['overflow']=True
+    assert _usage(chunks) is None

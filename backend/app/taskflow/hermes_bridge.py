@@ -1,5 +1,6 @@
 """Executed by the owner's installed Hermes Python. No source is copied from Hermes."""
 import contextlib
+from decimal import Decimal, InvalidOperation
 from hashlib import sha256
 import io
 import json
@@ -22,9 +23,37 @@ class _QuietBuffer(io.StringIO):
     def flush(self):pass
 
 
+def _usage(captures):
+    result=None
+    for capture in captures:
+        if capture['overflow']:continue
+        raw=bytes(capture['data'])
+        values=[]
+        try:values.append(json.loads(raw))
+        except (ValueError,UnicodeError):
+            for line in raw.splitlines():
+                if line.startswith(b'data:'):
+                    try:values.append(json.loads(line[5:].strip()))
+                    except (ValueError,UnicodeError):pass
+        for value in values:
+            usage=value.get('usage') if isinstance(value,dict) else None
+            if not isinstance(usage,dict):continue
+            incoming,outgoing=usage.get('prompt_tokens'),usage.get('completion_tokens')
+            if any(type(n) is not int or not 0 <= n <= 10**9 for n in (incoming,outgoing)):continue
+            result={'prompt_tokens':incoming,'completion_tokens':outgoing}
+            cost=usage.get('cost')
+            if type(cost) in (str,int,float):
+                try:
+                    number=Decimal(str(cost))
+                    if number.is_finite() and 0 <= number <= 9*10**9:result['cost']=str(number)
+                except InvalidOperation:pass
+    return result
+
+
 def main():
     dispatched={'count':0,'http_status':None,'request_check':None}
     agents=[]
+    captures=[]
     phase='input'
     try:
         request=json.loads(sys.stdin.buffer.read(1024*1024+1))
@@ -71,6 +100,20 @@ def main():
                     raise PermissionError('Gateway route denied')
                 if http_request.method=='POST':
                     body=json.loads(http_request.content)
+                    caps=request.get('spend_caps',{})
+                    limit=caps.get('max_payload_bytes')
+                    output=caps.get('max_output_tokens')
+                    if (type(limit) is not int or not 1 <= limit <= 512*1024
+                            or type(output) is not int or output != request['max_tokens']
+                            or len(http_request.content)>limit
+                            or type(body.get('max_tokens')) is not int or body['max_tokens']!=output
+                            or any(body.get(k) not in (None,1) or type(body.get(k)) is bool for k in ('n','best_of'))
+                            or ('max_completion_tokens' in body and (type(body['max_completion_tokens']) is not int or not 0 < body['max_completion_tokens'] <= output))
+                            or body.get('functions') or body.get('models') or body.get('plugins')
+                            or body.get('route') or body.get('preset')
+                            or body.get('service_tier') not in (None,'default')):
+                        dispatched['request_check']='spend_caps_changed'
+                        raise BridgePolicyError('Transport spend caps changed')
                     if body.get('model')!=request['model']:
                         dispatched['request_check']='model_changed'
                         raise BridgePolicyError('Requested model changed')
@@ -94,6 +137,24 @@ def main():
                 dispatched['request_check']='allowed'
                 response=original_send(client,http_request)
                 dispatched['http_status']=response.status_code
+                capture={'data':bytearray(),'overflow':False}
+                captures.append(capture)
+                def retain(chunk):
+                    if len(capture['data'])+len(chunk)>256*1024:
+                        capture['overflow']=True
+                    elif not capture['overflow']:
+                        capture['data'].extend(chunk)
+                if response.is_stream_consumed:
+                    retain(response.content)
+                else:
+                    original_stream=response.stream
+                    class MeteredStream(httpx.SyncByteStream):
+                        def __iter__(self):
+                            for chunk in original_stream:
+                                retain(chunk)
+                                yield chunk
+                        def close(self):original_stream.close()
+                    response.stream=MeteredStream()
                 return response
             httpx.Client._send_single_request=guarded_send
             from run_agent import AIAgent
@@ -138,7 +199,8 @@ def main():
                 raise RuntimeError('Hermes did not complete exactly one child request')
             summary=entries[0].get('summary')
             if not isinstance(summary,str) or not summary.strip():raise ValueError('Empty child output')
-            response={'ok':True,'summary':summary,'provenance':{'origin':'hermes','operation_id':request['operation_id'],
+            usage=_usage(captures)
+            response={'ok':True,'summary':summary,'usage':usage,'provenance':{'origin':'hermes','operation_id':request['operation_id'],
                 'model_id':request['model'],'provider':'custom','route':'omniroute','sdk_commit':stamp['commit'],
                 'parent_session_id':agents[0].session_id,'child_session_id':agents[1].session_id,'tools_count':0,
                 'inference_requests':dispatched['count'],'input_sha256':sha256(request['context'].encode()).hexdigest()}}

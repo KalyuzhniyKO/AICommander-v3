@@ -1,6 +1,7 @@
 """Real planning contract over the same lifecycle/tables, separate from frozen v1."""
 from fastapi import APIRouter, Depends, HTTPException
 
+from backend.app.budgets.runtime import RuntimeSpend
 from backend.app.storage.repositories import Repository
 from .hermes import HermesDirector
 from .models import HermesCreateRun, HermesRunSnapshot, Command, OwnerDecision, OperationSnapshot
@@ -10,12 +11,14 @@ from .service import Taskflow, FlowError
 def create_hermes_router(repository_dependency, settings_getter):
     router=APIRouter(prefix='/taskflow/v2',tags=['hermes-planning'])
 
-    def director():
+    def director(repo=None):
         settings=settings_getter()
-        return HermesDirector(settings.hermes,settings.omniroute)
+        agent = HermesDirector(settings.hermes,settings.omniroute)
+        if repo is not None:agent.spending = RuntimeSpend(repo.conn,settings)
+        return agent
 
     def invoke(repo, method, *args):
-        agent=director()
+        agent=director(repo)
         if method=='create' and not agent.available:
             raise HTTPException(503,detail={'code':'hermes_unavailable','message':'Hermes transport не включён или не настроен на сервере'})
         try:return getattr(Taskflow(repo.conn,agent,mode='hermes'),method)(*args)
