@@ -30,6 +30,7 @@ class Settings:
     omniroute: OmniRouteConfig = field(default_factory=OmniRouteConfig)
     hermes: HermesConfig = field(default_factory=HermesConfig)
     local_review_root: str = ""
+    spend_policy_file: str = ""
     @property
     def database_path(self) -> Path:
         prefix = "sqlite:///"
@@ -51,6 +52,7 @@ def get_settings() -> Settings:
     _dotenv()
     return Settings(
         local_review_root=os.environ.get("LOCAL_REVIEW_ROOT", ""),
+        spend_policy_file=os.environ.get("SPEND_POLICY_FILE", ""),
         openrouter_api_key=os.environ.get("OPENROUTER_API_KEY",""),
         default_timeout_seconds=max(1,int(os.environ.get("DEFAULT_TIMEOUT_SECONDS","60"))),
         max_model_retries=max(1,int(os.environ.get("MAX_MODEL_RETRIES","1"))),

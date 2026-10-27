@@ -1,5 +1,7 @@
 # Подготовка #18: допуск запросов и учёт резервов
 
+**Обновление 27.10.2026:** ledger также подключён к runtime приложения; см. [контроль расходов](RUNTIME_SPENDING.md). Описание offline ниже сохраняет границы исходного standalone-компонента.
+
 [English](BUDGETS.en.md) · [Issue #18](https://github.com/KalyuzhniyKO/AICommander-v3/issues/18)
 
 `backend.app.budgets` — отдельная offline-библиотека для проверяемой политики

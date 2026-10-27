@@ -150,6 +150,16 @@ button:disabled, button:disabled:hover {
   .action-group--process.hermes-actions .action-buttons { grid-template-columns: minmax(0, 1fr); }
 }
 
+#spendingPanel { min-width: 0; overflow-wrap: anywhere; }
+.spend-accounts { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.spend-account { min-width: 0; padding: 12px; background: #0e1728; border: 1px solid #415575; border-radius: 12px; }
+.spend-account p, .spend-quote, #spendHistory p { white-space: pre-wrap; overflow-wrap: anywhere; }
+#spendApprovalForm { padding-top: 16px; }
+#spendApprovalForm > label { display: block; margin-top: 12px; }
+#spendApprovalForm select { width: 100%; min-width: 0; }
+#spendingPanel input[type="checkbox"] { display: inline; width: auto; margin-right: 10px; }
+@media(max-width:1000px) { .spend-accounts { grid-template-columns: 1fr; } }
+.spend-selection { border: 1px solid #415575; background: #111827; padding: 12px; border-radius: 10px; }
 /* Keep long stage titles whole on the narrowest phones. */
 @media (max-width: 420px) {
   .stage-progress { grid-template-columns: minmax(0, 1fr); }

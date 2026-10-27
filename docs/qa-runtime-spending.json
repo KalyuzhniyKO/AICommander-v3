@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-27",
+  "scope": "application_runtime_spending",
+  "live_provider_prices_verified": false,
+  "live_invoice_verified": false,
+  "checks": [
+    {
+      "command": "RUN_UI_TESTS=1 python -m pytest -q",
+      "passed": 568,
+      "skipped": 2,
+      "exit_code": 0,
+      "note": "After integrating current main; before final SDK Retry-After test."
+    },
+    {
+      "command": "python -m pytest -q tests/test_hermes_transport.py tests/test_runtime_spending.py tests/test_spending_api.py",
+      "passed": 51,
+      "exit_code": 0,
+      "note": "Final SDK quota propagation and all financial core/API tests."
+    },
+    {
+      "command": "python -m compileall -q backend",
+      "exit_code": 0
+    }
+  ],
+  "actual_runtime_paths": [
+    "legacy rounds",
+    "role reruns",
+    "manual fixed-prompt model checks",
+    "Hermes StepOperations and bridge"
+  ],
+  "evidence": "Real temporary SQLite/HTTP/Chromium and actual provider/SDK transport code with synthetic tariffs and upstream responses; no live inference.",
+  "coverage": [
+    "default deny",
+    "shared operation/reservation/outcome transactions",
+    "last concurrent money slot",
+    "restart and unknown holds",
+    "one-shot dispatch",
+    "account binding",
+    "price revision binding",
+    "owner idempotent approval",
+    "provider price caps",
+    "fixed fees",
+    "separate upstream and gross bounds",
+    "verified zero-price ordering",
+    "no automatic inference replay",
+    "structured quota and Retry-After",
+    "overrun",
+    "unknown billing units",
+    "safe usage evidence",
+    "RU/EN/mobile",
+    "lost approval response",
+    "XSS"
+  ],
+  "reviewed_visuals": [
+    "default-unknown.png",
+    "budget-ru.png",
+    "budget-mobile-en.png"
+  ],
+  "boundaries": [
+    "No working SPEND_POLICY_FILE created",
+    "No credentials read or inventory authorization reused",
+    "No provider rates/caps asserted from model names",
+    "Subscription quota and cash payment unknown",
+    "No Codex CLI or manual ChatGPT automation",
+    "Unknown financial reconciliation and OS sandbox remain separate"
+  ],
+  "ci": "Pending final-head checks in PR"
+}

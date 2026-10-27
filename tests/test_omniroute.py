@@ -23,6 +23,15 @@ def isolated_omniroute_env(monkeypatch):
         monkeypatch.delenv(name, raising=False)
 
 
+@pytest.fixture(autouse=True)
+def declared_free_transport_context(monkeypatch, provider_budget_factory):
+    original = OmniRouteProvider.__init__
+    def initialize(self, *args, **kwargs):
+        original(self, *args, **kwargs)
+        self.budget = provider_budget_factory('omniroute','synthetic/provider-model',self.config.base_url or 'http://127.0.0.1',output_tokens=self.config.max_output_tokens,api_key=self.config.api_key)
+    monkeypatch.setattr(OmniRouteProvider,'__init__',initialize)
+
+
 class FakeOpener:
     def __init__(self, *responses):
         self.responses = list(responses)

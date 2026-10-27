@@ -15,7 +15,8 @@ class Model(BaseModel):
 
 
 class Tariff(Model):
-    # Integer micro-USD per million tokens, rounded UP for each input/output component.
+    # Worst declared rates; optional fixed request fee, all rounded UP.
+    request_micro_usd: int = Field(default=0, ge=0, le=10**12)
     input_micro_usd_per_million: int = Field(ge=0, le=10**12)
     output_micro_usd_per_million: int = Field(ge=0, le=10**12)
 
@@ -24,7 +25,7 @@ class Tariff(Model):
             raise ValueError('Invalid token counts')
         input_cost=input_tokens*self.input_micro_usd_per_million
         output_cost=output_tokens*self.output_micro_usd_per_million
-        return (input_cost+999_999)//1_000_000 + (output_cost+999_999)//1_000_000
+        return self.request_micro_usd + (input_cost+999_999)//1_000_000 + (output_cost+999_999)//1_000_000
 
 
 class Route(Model):

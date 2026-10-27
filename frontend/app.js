@@ -30,7 +30,7 @@ async function api(path, method = 'GET', payload) {
       throw error;
     }
     return data;
-  } finally { clearTimeout(timeout); }
+  } finally { clearTimeout(timeout); if(method!=='GET')document.dispatchEvent(new Event('spend-refresh')); }
 }
 function status(text, kind = 'info') {
   // Read-only actions cannot be presented as confirmed writes.
@@ -67,7 +67,7 @@ function controls() {
   el('rejectTask').disabled = locked || isHermes() || state !== 'awaiting_owner';
   el('retryRequest').hidden = !pending;
   el('retryRequest').disabled = busy || !pending;
-  document.querySelectorAll('button[type="submit"], [data-task]').forEach(button => button.disabled = locked);
+  document.querySelectorAll('#projectForm button[type="submit"], #taskForm button[type="submit"], [data-task]').forEach(button => button.disabled = locked);
 }
 async function action(fn, writes = false) {
   if (busy) return;
@@ -226,6 +226,10 @@ function renderProgress() {
 }
 
 function renderDetail() {
+  window.panelCurrentTaskId=task?.id??null;
+  window.panelCurrentRunId=run?.run_id??null;
+  window.panelExecutionMode=mode;
+  document.dispatchEvent(new CustomEvent('panel-task-change',{detail:{taskId:task?.id??null,runId:run?.run_id??null,version:run?.version??null,mode}}));
   renderMode();
   el('taskTitle').textContent = task?.title || tr('Выбери задачу');
   el('taskMeta').textContent = run ? (panelLocale.language === 'en' ? `Task #${task.id} · Run #${run.run_id} · ${runLabel()} · Version ${run.version} · Steps ${run.steps_done}/${run.max_steps}` : `Задача #${task.id} · Процесс #${run.run_id} · ${runLabel()} · Версия ${run.version} · Шаги ${run.steps_done}/${run.max_steps}`) : tr('Процесс не выбран');
@@ -257,8 +261,8 @@ async function refreshTasks() {
 }
 function renderCachedModels() {
   if (!cachedModels) return;
-  el('cost').textContent = isHermes() ? (panelLocale.language === 'en' ? 'Stored planning artifacts are not a cost report. Actual model costs are unavailable.' : 'Артефакты планирования не являются отчётом о затратах. Фактическая стоимость вызовов недоступна.') : tr('Taskflow работает с Mock Director без вызовов моделей. Учёт затрат реальных моделей ожидает #18.');
-  el('models').innerHTML = (isHermes() ? [] : cachedModels.models).map(m => `<p>${esc(m.role)} · ${esc(m.model_id)} · ${esc(m.status)}</p>`).join('') || `<p>${esc(isHermes() ? (panelLocale.language === 'en' ? 'Provider availability and quotas are not checked in this view.' : 'Доступность провайдеров и квоты в этом режиме не проверяются.') : tr('В legacy-раундах модели ещё не вызывались.'))}</p>`;
+  el('cost').textContent = isHermes() ? (panelLocale.language === 'en' ? 'Stored planning artifacts are not a cost report. See Budget and spending for API accounting.' : 'Артефакты планирования не являются отчётом о затратах. Учёт API показан в разделе «Бюджет и расходы».') : (panelLocale.language === 'en' ? 'Mock Director does not call models. API accounting is shown under Budget and spending.' : 'Mock Director не вызывает модели. Учёт API показан в разделе «Бюджет и расходы».');
+  el('models').innerHTML = (isHermes() ? [] : cachedModels.models).map(m => `<p>${esc(m.role)} · ${esc(m.model_id)} · ${esc(m.status === 'blocked_budget' ? (panelLocale.language === 'en' ? 'Budget blocked' : 'Заблокировано бюджетом') : m.status)}</p>`).join('') || `<p>${esc(isHermes() ? (panelLocale.language === 'en' ? 'Provider availability and quotas are not checked in this view.' : 'Доступность провайдеров и квоты в этом режиме не проверяются.') : tr('В legacy-раундах модели ещё не вызывались.'))}</p>`;
 }
 async function refreshModels() {
   cachedModels = await api('/panel/status');

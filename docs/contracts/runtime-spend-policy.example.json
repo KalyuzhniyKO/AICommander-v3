@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "verified_at_ms": 0,
+  "valid_until_ms": 86400000,
+  "routes": [
+    {
+      "provider": "omniroute",
+      "base_url": "https://gateway.invalid",
+      "model_id": "replace/verified-model",
+      "roles": [
+        "analyst",
+        "architect",
+        "developer",
+        "reviewer"
+      ],
+      "account_sha256": null,
+      "tariff": null,
+      "upstream_tariff": null,
+      "reported_cost_unit": null,
+      "credit_micro_usd": null,
+      "fixed_route_verified": false,
+      "billing_categories_verified": false,
+      "provider_caps_verified": false,
+      "max_input_tokens": 65536,
+      "max_output_tokens": 256,
+      "max_payload_bytes": 16384,
+      "timeout_seconds": 60
+    }
+  ],
+  "global_ceiling_micro_usd": 0,
+  "project_ceiling_micro_usd": 0,
+  "task_ceiling_micro_usd": 0,
+  "max_requests": 100,
+  "max_total_tokens": 100000000,
+  "period_seconds": 86400
+}
