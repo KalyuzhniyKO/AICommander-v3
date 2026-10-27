@@ -152,3 +152,5 @@ wiring; independent review/owner approval remain required and readiness False.
 [Saved QA bundle viewer](docs/LOCAL_REVIEW_PANEL.en.md): optional read-only panel section for local fixture reports/diff, with integrity checks. Not current-source verification or independent review.
 
 [Runtime spending](docs/RUNTIME_SPENDING.en.md): zero/default-deny API budgets, scoped owner approvals and reservations wired to current inference paths. No live pricing/caps acceptance is claimed.
+
+[Manual ChatGPT](docs/MANUAL_CHATGPT.en.md): latest_available / High preference, cached public sources and owner-confirmed context/answer handoff; no account/session automation or model API calls.

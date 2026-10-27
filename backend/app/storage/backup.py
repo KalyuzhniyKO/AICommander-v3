@@ -23,7 +23,8 @@ APP_TABLES={'tasks','rounds','role_outputs','model_errors','model_status'}
 FLOW_TABLES={'taskflow_runs','taskflow_stages','taskflow_artifacts','taskflow_events','taskflow_commands'}
 BUDGET_TABLES={'budget_accounts','budget_requests','budget_version'}
 SPEND_TABLES={'spend_migrations','spend_scopes','spend_permissions','spend_events','spend_approvals'}
-COUNT_TABLES=APP_TABLES|FLOW_TABLES|BUDGET_TABLES|SPEND_TABLES|{'taskflow_operations','projects','owner_decisions'}
+MANUAL_TABLES={'manual_chatgpt_version','manual_source_cache','manual_selections','manual_exports','manual_answers'}
+COUNT_TABLES=APP_TABLES|FLOW_TABLES|BUDGET_TABLES|SPEND_TABLES|MANUAL_TABLES|{'taskflow_operations','projects','owner_decisions'}
 
 
 class BackupError(Exception):
@@ -143,6 +144,8 @@ def _inspect(path,deadline,max_bytes):
             if budget and bv!=[1]:raise BackupError('unsupported_schema')
             spending=_versions(conn,tables,'spend_migrations')
             if SPEND_TABLES & tables and (not SPEND_TABLES<=tables or spending!=[1] or not budget):raise BackupError('unsupported_schema')
+            manual=_versions(conn,tables,'manual_chatgpt_version')
+            if MANUAL_TABLES & tables and (not MANUAL_TABLES<=tables or manual!=[1] or not app):raise BackupError('unsupported_schema')
             counts={name:conn.execute('SELECT COUNT(*) FROM '+name).fetchone()[0] for name in sorted(COUNT_TABLES & tables)}
             active={}
             for table,column,states in (
@@ -157,6 +160,7 @@ def _inspect(path,deadline,max_bytes):
             deadline.check()
             versions={'taskflow':flow,'panel':panel,'budget':bv}
             if spending:versions['spending']=spending
+            if manual:versions['manual_chatgpt']=manual
             return {'kind':'app_and_budget' if app and budget else 'app' if app else 'budget',
                 'versions':versions,'row_counts':counts,
                 'unresolved_counts':active,'operator_recovery_required':any(active.values())}
