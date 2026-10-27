@@ -20,9 +20,12 @@ def connect(db_path:Path)->sqlite3.Connection:
 
 def init_db(conn:sqlite3.Connection)->None:
     from backend.app.budgets.runtime_schema import initialize_runtime_budget, preflight_runtime_budget
+    from backend.app.manual_chatgpt.schema import preflight as preflight_manual, initialize as initialize_manual
     preflight_runtime_budget(conn)
+    preflight_manual(conn)
     conn.executescript(SCHEMA)
     conn.commit()
     migrate_taskflow(conn)
     migrate_panel(conn)
     initialize_runtime_budget(conn)
+    initialize_manual(conn)

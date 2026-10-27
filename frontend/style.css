@@ -164,3 +164,8 @@ button:disabled, button:disabled:hover {
 @media (max-width: 420px) {
   .stage-progress { grid-template-columns: minmax(0, 1fr); }
 }
+#manualChatGPT { min-width: 0; overflow-wrap: anywhere; }
+#manualChatGPT label { display: block; margin-top: 12px; }
+#manualChatGPT select { width: 100%; min-width: 0; }
+#manualChatGPT input[type="checkbox"] { display: inline; width: auto; margin-right: 10px; }
+#manualChatGPT a { color: #93c5fd; }

@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-27",
+  "scope": "manual_chatgpt_chat_only",
+  "model_policy": "latest_available",
+  "preferred_effort": "High",
+  "local_full_suite": {
+    "passed": 581,
+    "skipped": 2,
+    "exit_code": 0,
+    "note": "Before final explicit plan-eligibility presentation; subsequent focused browser tests cover that copy."
+  },
+  "focused_backend_api": {
+    "passed": 10,
+    "exit_code": 0
+  },
+  "live_public_document_probe": {
+    "retrieved": true,
+    "bytes": 98454,
+    "source_url": "https://help.openai.com/en/articles/20001354-gpt-6-and-other-models-in-chatgpt",
+    "announced_model": "GPT-6",
+    "source_sha256": "200b6a7c350e518086aca2e4979b0436ebe5ec151ae2de564bd924afd62c01df",
+    "owner_account_accessed": false,
+    "model_inference": false
+  },
+  "screenshots": "Synthetic public announcements and owner choices; our local Chromium/HTTP/SQLite only, not ChatGPT web automation.",
+  "boundaries": {
+    "automatic_picker": false,
+    "cookies_or_sessions": false,
+    "private_endpoints": false,
+    "automatic_answer_extraction": false,
+    "subscription_quota_known": false,
+    "cash_payment_known": false,
+    "paid_api_policy_changed": false,
+    "independent_review_or_qa_attested": false
+  },
+  "ci": "Pending exact-head verification"
+}

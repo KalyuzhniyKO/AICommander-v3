@@ -64,5 +64,10 @@
     "No Codex CLI or manual ChatGPT automation",
     "Unknown financial reconciliation and OS sandbox remain separate"
   ],
-  "ci": "Pending final-head checks in PR"
+  "ci": {
+    "passed": 22,
+    "head": "4c71b29506a54f0edc13c67ecf6228989fe7c75d",
+    "pull_request": 62,
+    "run_url": "https://github.com/KalyuzhniyKO/AICommander-v3/actions/runs/40576615273"
+  }
 }
