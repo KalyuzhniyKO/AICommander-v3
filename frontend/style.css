@@ -169,3 +169,4 @@ button:disabled, button:disabled:hover {
 #manualChatGPT select { width: 100%; min-width: 0; }
 #manualChatGPT input[type="checkbox"] { display: inline; width: auto; margin-right: 10px; }
 #manualChatGPT a { color: #93c5fd; }
+#architectSetting input { display: inline; width: auto; margin-right: 10px; }
