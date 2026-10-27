@@ -27,7 +27,10 @@ def create_hermes_router(repository_dependency, settings_getter):
 
     @router.get('/capabilities')
     def capabilities():
-        return {'configured':director().available,'director':'hermes','scope':'real_planning_artifacts_only',
+        agent=director()
+        guarded=callable(getattr(agent,'reserve_budget',None)) and callable(getattr(agent,'finish_budget',None))
+        return {'configured':agent.available,'director':'hermes','scope':'real_planning_artifacts_only',
+                'runtime_budget_guarded':guarded,'owner_controls_version':1,
                 'code_executed':False,'qa_verified':False}
 
     @router.post('/tasks/{task_id}/runs',response_model=HermesRunSnapshot)
