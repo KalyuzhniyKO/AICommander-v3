@@ -2,7 +2,9 @@
 // Never translate user-provided task/artifact data or server-returned errors.
 (() => {
   const dictionary = {
-    'Подключение…':'Connecting…', 'Подключено':'Connected', 'Сохранено':'Saved',
+    'Подключение…':'Connecting…', 'Подключено':'Connected',
+    'Сохранение…':'Saving…', 'Все изменения сохранены':'All changes saved',
+    'Данные обновлены':'Data refreshed',
     'Запустить процесс':'Start process', 'Продолжить / Повторить':'Resume / retry',
     'Нет taskflow':'No taskflow', 'Пока нет задач.':'No tasks yet.',
     'Выбери задачу':'Choose a task', 'Процесс не выбран':'No run selected',
@@ -86,16 +88,8 @@
         input.placeholder = this.language === 'en' ? 'Describe the requirements and acceptance criteria' : input.dataset.originalPlaceholder;
       }
       const state = document.querySelector('#status');
-      if (state) {
-        const equivalents = {'Подключено':'Connected','Connected':'Подключено',
-          'Сохранено':'Saved','Saved':'Сохранено',
-          'Подключение…':'Connecting…','Connecting…':'Подключение…'};
-        if (equivalents[state.textContent]) {
-          const normalized = ['Подключено','Connected'].includes(state.textContent) ? 'Подключено'
-            : ['Сохранено','Saved'].includes(state.textContent) ? 'Сохранено' : 'Подключение…';
-          state.textContent = this.tr(normalized);
-        }
-      }
+      // Preserve actual API outcome when switching RU/EN; never infer success from UI text.
+      if (state?.dataset.statusKey) state.textContent = this.tr(state.dataset.statusKey);
     },
     setLanguage(lang) {
       if (!['ru','en'].includes(lang)) return;

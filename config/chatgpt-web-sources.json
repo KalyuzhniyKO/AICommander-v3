@@ -1,0 +1,8 @@
+{
+  "product": "Chat",
+  "source_url": "https://help.openai.com/en/articles/20001354-gpt-6-and-other-models-in-chatgpt",
+  "chat_url": "https://chatgpt.com/",
+  "cache_seconds": 86400,
+  "chatgpt_web_model_policy": "latest_available",
+  "preferred_effort": "High"
+}

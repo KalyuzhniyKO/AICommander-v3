@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.app.budgets.runtime import RuntimeSpend, ProviderBudget
 from backend.app.agents.base import get_agent
 from backend.app.redaction import redact
 from backend.app.config import Settings
@@ -52,12 +53,17 @@ def run_round(task_id: int, user_comment: str, settings: Settings, model_config:
         raise ValueError(f"Task {task_id} not found")
     selected_roles = select_roles(task["description"] + "\n" + (user_comment or ""))
     round_row = repository.create_round(task_id, selected_roles, user_comment)
-    openrouter = OpenRouterProvider(settings.openrouter_api_key, settings.openrouter_base_url)
     context = build_round_context(task, user_comment)
     outputs = []
     for role in selected_roles:
         if repository.cancelled(task_id):
             break
+        budget = ProviderBudget(RuntimeSpend(repository.conn,settings),task_id=task_id,origin='legacy',role=role,
+                                cancelled=lambda:repository.cancelled(task_id))
+        openrouter = OpenRouterProvider(settings.openrouter_api_key, settings.openrouter_base_url)
+        openrouter.budget = budget
+        omni = OmniRouteProvider(settings.omniroute)
+        omni.budget = budget
         agent = get_agent(role)
         messages = [ChatMessage("system", agent.system_prompt), ChatMessage("user", agent.build_user_prompt(context))]
         outcome = run_with_fallback(
@@ -69,7 +75,7 @@ def run_round(task_id: int, user_comment: str, settings: Settings, model_config:
             repository=repository,
             round_id=round_row["id"],
             openrouter=openrouter,
-            omniroute=OmniRouteProvider(settings.omniroute),
+            omniroute=omni,
             cancelled=lambda: repository.cancelled(task_id),
             provider_filter=lambda provider: provider in {"openrouter", "omniroute"},
         )
@@ -94,8 +100,13 @@ def rerun_role(round_id: int, role: str, settings: Settings, model_config: dict[
         raise ValueError(f"Task {round_row['task_id']} not found")
     if role not in {"manager", "architect", "designer", "coder", "reviewer"}:
         raise ValueError(f"Unsupported role {role}")
-    openrouter = OpenRouterProvider(settings.openrouter_api_key, settings.openrouter_base_url)
     context = build_round_context(task, round_row.get("user_comment", ""))
+    budget = ProviderBudget(RuntimeSpend(repository.conn,settings),task_id=task['id'],origin='legacy_retry',role=role,
+                            cancelled=lambda:repository.cancelled(task['id']))
+    openrouter = OpenRouterProvider(settings.openrouter_api_key, settings.openrouter_base_url)
+    openrouter.budget = budget
+    omni = OmniRouteProvider(settings.omniroute)
+    omni.budget = budget
     agent = get_agent(role)
     outcome = run_with_fallback(
         role=role,
@@ -106,7 +117,7 @@ def rerun_role(round_id: int, role: str, settings: Settings, model_config: dict[
         repository=repository,
         round_id=round_id,
         openrouter=openrouter,
-        omniroute=OmniRouteProvider(settings.omniroute),
+        omniroute=omni,
         cancelled=lambda: repository.cancelled(task["id"]),
         provider_filter=lambda provider: provider in {"openrouter", "omniroute"},
     )

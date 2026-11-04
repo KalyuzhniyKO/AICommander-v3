@@ -2,11 +2,22 @@ import io
 import json
 import urllib.error
 import urllib.request
+from types import SimpleNamespace
 
 import pytest
 
 from backend.app.providers.base import ChatMessage, ProviderError
 from backend.app.providers.openrouter import OpenRouterProvider
+
+
+@pytest.fixture(autouse=True)
+def declared_free_transport_context(monkeypatch, provider_budget_factory):
+    original = OpenRouterProvider.__init__
+    def initialize(self, *args, **kwargs):
+        original(self, *args, **kwargs)
+        self.budget = provider_budget_factory('openrouter','test-model',self.base_url,api_key=self.api_key)
+        self._opener = SimpleNamespace(open=lambda *a,**kw:urllib.request.urlopen(*a,**kw))
+    monkeypatch.setattr(OpenRouterProvider,'__init__',initialize)
 
 
 def chat():
@@ -22,7 +33,7 @@ def test_request_payload_and_response_are_closed(monkeypatch):
         assert request.full_url == "https://models.invalid/api/v1/chat/completions"
         assert request.method == "POST" and timeout == 3
         assert request.get_header("Authorization") == "Bearer test-key"
-        assert json.loads(request.data) == {"model": "test-model", "messages": [{"role": "user", "content": "test prompt"}]}
+        assert json.loads(request.data) == {"model": "test-model", "messages": [{"role": "user", "content": "test prompt"}], "max_tokens":256,"stream":False,"modalities":["text"],"provider":{"allow_fallbacks":False,"require_parameters":True,"sort":"price","max_price":{"prompt":0,"completion":0,"request":0,"image":0}}}
         return response
 
     monkeypatch.setattr(urllib.request, "urlopen", urlopen)

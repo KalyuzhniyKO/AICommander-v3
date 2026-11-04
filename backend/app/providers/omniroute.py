@@ -8,6 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from email.utils import parsedate_to_datetime
 import ipaddress
+from hashlib import sha256
 import json
 import math
 import os
@@ -17,6 +18,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from ..budgets.runtime import ProviderBudget, usage_from_response, reported_usage, retry_after_delay
 from .base import ChatMessage, ChatProvider, ChatResult, ProviderError, messages_to_dicts
 
 MAX_RESPONSE_BYTES = 1024 * 1024
@@ -112,7 +114,8 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 class OmniRouteProvider(ChatProvider):
     provider_name = "omniroute"
 
-    def __init__(self, config: OmniRouteConfig | None = None, *, opener=None):
+    def __init__(self, config: OmniRouteConfig | None = None, *, opener=None, budget=None):
+        self.budget = budget
         self.config = config if config is not None else OmniRouteConfig.from_env()
         # Do not inherit ambient proxy credentials or forward auth on redirects.
         self._opener = opener if opener is not None else urllib.request.build_opener(
@@ -182,6 +185,7 @@ class OmniRouteProvider(ChatProvider):
                 category = {401: "auth_required", 403: "forbidden", 402: "quota_or_tokens", 429: "rate_limited"}.get(
                     code, "redirect_blocked" if 300 <= code < 400 else "http_error")
                 failure = OmniRouteError(category, code, retry_after)
+                failure.budget_retry_after_seconds = retry_after_delay(exc.headers.get("Retry-After") if exc.headers else None)
                 retryable = code in {429, 500, 502, 503, 504}
             except OmniRouteError:
                 raise
@@ -223,16 +227,30 @@ class OmniRouteProvider(ChatProvider):
 
     def chat(self, model_id: str, messages: list[ChatMessage], timeout_seconds: int,
              *, cancel: Event | None = None) -> ChatResult:
+        if isinstance(timeout_seconds,bool) or not isinstance(timeout_seconds,(int,float)) or not math.isfinite(timeout_seconds) or timeout_seconds <= 0:
+            raise OmniRouteError('invalid_request')
         if (not _valid_model_id(model_id) or not messages
                 or (self.config.api_key and self.config.api_key in model_id)
                 or any(not isinstance(m, ChatMessage) or m.role not in {"system", "user", "assistant"}
                        or not isinstance(m.content, str) for m in messages)):
             raise OmniRouteError("invalid_request")
+        if not self.config.enabled:
+            raise OmniRouteError('disabled')
+        if not self.config.api_key:
+            raise OmniRouteError('not_configured')
+        if not isinstance(self.budget, ProviderBudget):
+            from .base import ProviderError
+            raise ProviderError('Запрос модели не отправлен: pricing_policy_unavailable','spend_blocked')
+        return self.budget.chat(provider=self.provider_name,model=model_id,base_url=self.config.base_url,
+            messages=messages_to_dicts(messages),timeout_seconds=timeout_seconds,
+            output_limit=self.config.max_output_tokens,credential_sha256=sha256(self.config.api_key.encode()).hexdigest(),
+            send=lambda payload,timeout:self._send_chat(payload,timeout,cancel))
+
+    def _send_chat(self, payload, timeout_seconds, cancel):
         start = time.monotonic()
-        parsed = self._request("/v1/chat/completions", authenticated=True,
-                               payload={"model": model_id, "messages": messages_to_dicts(messages), "stream": False,
-                                        "max_tokens": self.config.max_output_tokens},
-                               timeout=timeout_seconds, cancel=cancel)
+        model_id = payload['model']
+        parsed = self._request('/v1/chat/completions',authenticated=True,payload=payload,
+                               timeout=timeout_seconds,cancel=cancel)
         try:
             content = parsed["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError):
@@ -242,4 +260,4 @@ class OmniRouteProvider(ChatProvider):
         # Never expose an echoed configured credential, even in a successful body.
         content = content.replace(self.config.api_key, "[REDACTED]")
         return ChatResult(provider=self.provider_name, model_id=model_id, content=content,
-                          response_time_ms=int((time.monotonic() - start) * 1000), raw=None)
+                          response_time_ms=int((time.monotonic() - start) * 1000), raw=None, usage=usage_from_response(parsed), reported_usage=reported_usage(parsed))

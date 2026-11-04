@@ -1,5 +1,7 @@
 # Preparation #18: request admission and reservation accounting
 
+**Update 2026-10-27:** the ledger now also gates actual application runtime paths; see [runtime spending](RUNTIME_SPENDING.en.md). The offline scope below documents the original standalone implementation.
+
 [Русский](BUDGETS.md) · [Issue #18](https://github.com/KalyuzhniyKO/AICommander-v3/issues/18)
 
 `backend.app.budgets` is an offline library, with no model calls, routing loop,

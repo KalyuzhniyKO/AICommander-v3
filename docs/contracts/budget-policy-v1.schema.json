@@ -115,6 +115,13 @@
     "Tariff": {
       "additionalProperties": false,
       "properties": {
+        "request_micro_usd": {
+          "default": 0,
+          "maximum": 1000000000000,
+          "minimum": 0,
+          "title": "Request Micro Usd",
+          "type": "integer"
+        },
         "input_micro_usd_per_million": {
           "maximum": 1000000000000,
           "minimum": 0,

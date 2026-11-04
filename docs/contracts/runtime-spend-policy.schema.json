@@ -1,0 +1,268 @@
+{
+  "$defs": {
+    "RuntimeRoute": {
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "enum": [
+            "openrouter",
+            "omniroute"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "base_url": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Base Url",
+          "type": "string"
+        },
+        "model_id": {
+          "maxLength": 110,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]*$",
+          "title": "Model Id",
+          "type": "string"
+        },
+        "roles": {
+          "items": {
+            "enum": [
+              "analyst",
+              "architect",
+              "developer",
+              "reviewer"
+            ],
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "title": "Roles",
+          "type": "array"
+        },
+        "account_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Account Sha256"
+        },
+        "tariff": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Tariff"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "upstream_tariff": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Tariff"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reported_cost_unit": {
+          "anyOf": [
+            {
+              "enum": [
+                "usd",
+                "credits"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reported Cost Unit"
+        },
+        "credit_micro_usd": {
+          "anyOf": [
+            {
+              "maximum": 1000000000000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Credit Micro Usd"
+        },
+        "fixed_route_verified": {
+          "default": false,
+          "title": "Fixed Route Verified",
+          "type": "boolean"
+        },
+        "billing_categories_verified": {
+          "default": false,
+          "title": "Billing Categories Verified",
+          "type": "boolean"
+        },
+        "provider_caps_verified": {
+          "default": false,
+          "title": "Provider Caps Verified",
+          "type": "boolean"
+        },
+        "max_input_tokens": {
+          "default": 65536,
+          "maximum": 1000000,
+          "minimum": 1,
+          "title": "Max Input Tokens",
+          "type": "integer"
+        },
+        "max_output_tokens": {
+          "default": 256,
+          "maximum": 1000000,
+          "minimum": 1,
+          "title": "Max Output Tokens",
+          "type": "integer"
+        },
+        "max_payload_bytes": {
+          "default": 16384,
+          "maximum": 524288,
+          "minimum": 1,
+          "title": "Max Payload Bytes",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 60,
+          "maximum": 120,
+          "minimum": 1,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "provider",
+        "base_url",
+        "model_id",
+        "roles"
+      ],
+      "title": "RuntimeRoute",
+      "type": "object"
+    },
+    "Tariff": {
+      "additionalProperties": false,
+      "properties": {
+        "request_micro_usd": {
+          "default": 0,
+          "maximum": 1000000000000,
+          "minimum": 0,
+          "title": "Request Micro Usd",
+          "type": "integer"
+        },
+        "input_micro_usd_per_million": {
+          "maximum": 1000000000000,
+          "minimum": 0,
+          "title": "Input Micro Usd Per Million",
+          "type": "integer"
+        },
+        "output_micro_usd_per_million": {
+          "maximum": 1000000000000,
+          "minimum": 0,
+          "title": "Output Micro Usd Per Million",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "input_micro_usd_per_million",
+        "output_micro_usd_per_million"
+      ],
+      "title": "Tariff",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "verified_at_ms": {
+      "minimum": 0,
+      "title": "Verified At Ms",
+      "type": "integer"
+    },
+    "valid_until_ms": {
+      "minimum": 0,
+      "title": "Valid Until Ms",
+      "type": "integer"
+    },
+    "routes": {
+      "items": {
+        "$ref": "#/$defs/RuntimeRoute"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "title": "Routes",
+      "type": "array"
+    },
+    "global_ceiling_micro_usd": {
+      "default": 0,
+      "maximum": 1000000000000,
+      "minimum": 0,
+      "title": "Global Ceiling Micro Usd",
+      "type": "integer"
+    },
+    "project_ceiling_micro_usd": {
+      "default": 0,
+      "maximum": 1000000000000,
+      "minimum": 0,
+      "title": "Project Ceiling Micro Usd",
+      "type": "integer"
+    },
+    "task_ceiling_micro_usd": {
+      "default": 0,
+      "maximum": 1000000000000,
+      "minimum": 0,
+      "title": "Task Ceiling Micro Usd",
+      "type": "integer"
+    },
+    "max_requests": {
+      "default": 100,
+      "maximum": 1000,
+      "minimum": 1,
+      "title": "Max Requests",
+      "type": "integer"
+    },
+    "max_total_tokens": {
+      "default": 100000000,
+      "maximum": 1000000000,
+      "minimum": 1,
+      "title": "Max Total Tokens",
+      "type": "integer"
+    },
+    "period_seconds": {
+      "default": 86400,
+      "maximum": 86400,
+      "minimum": 1,
+      "title": "Period Seconds",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "verified_at_ms",
+    "valid_until_ms",
+    "routes"
+  ],
+  "title": "RuntimePolicy",
+  "type": "object"
+}

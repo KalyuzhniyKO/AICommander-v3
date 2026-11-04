@@ -6,6 +6,7 @@ import json
 import re
 import sqlite3
 import time
+from uuid import uuid4
 
 from .models import Decision, Outcome, Policy, Request
 
@@ -23,7 +24,13 @@ def _identifier(value):
 
 
 def _dump(value):
-    return json.dumps(value.model_dump(mode='json',warnings=False),sort_keys=True,separators=(',',':'))
+    payload = value.model_dump(mode='json', warnings=False)
+    # Preserve v1 policy fingerprints for existing zero-fee routes.
+    if isinstance(value, Policy):
+        for route in payload['routes']:
+            if route.get('tariff') is not None and route['tariff'].get('request_micro_usd') == 0:
+                route['tariff'].pop('request_micro_usd')
+    return json.dumps(payload, sort_keys=True, separators=(',', ':'))
 
 
 SCHEMA = (
@@ -47,8 +54,45 @@ class BudgetLedger:
         self.path=Path(path)
         self.clock_ms=clock_ms or (lambda:time.time_ns()//1_000_000)
 
+    @classmethod
+    def for_connection(cls, conn: sqlite3.Connection, *, clock_ms=None):
+        """Use the caller's application connection; nested work never commits it."""
+        ledger = cls.__new__(cls)
+        ledger.path = None
+        ledger._connection = conn
+        ledger.clock_ms = clock_ms or (lambda: time.time_ns() // 1_000_000)
+        return ledger
+
+    @contextmanager
+    def _shared_transaction(self, *, write, initialize):
+        conn = self._connection
+        nested = conn.in_transaction
+        savepoint = 'budget_' + uuid4().hex
+        opened = False
+        try:
+            conn.execute('SAVEPOINT ' + savepoint if nested else ('BEGIN IMMEDIATE' if write else 'BEGIN'))
+            opened = True
+            if not initialize and [r[0] for r in conn.execute('SELECT version FROM budget_version')] != [1]:
+                raise BudgetError('unsupported_ledger_version')
+            yield conn
+            conn.execute('RELEASE SAVEPOINT ' + savepoint) if nested else conn.commit()
+        except BaseException as error:
+            if opened:
+                if nested:
+                    conn.execute('ROLLBACK TO SAVEPOINT ' + savepoint)
+                    conn.execute('RELEASE SAVEPOINT ' + savepoint)
+                else:
+                    conn.rollback()
+            if isinstance(error, sqlite3.Error):
+                raise BudgetError('storage_error') from None
+            raise
+
     @contextmanager
     def _transaction(self, *, write=True, initialize=False):
+        if getattr(self, '_connection', None) is not None:
+            with self._shared_transaction(write=write, initialize=initialize) as conn:
+                yield conn
+            return
         if not initialize and not self.path.is_file():
             raise BudgetError('ledger_uninitialized')
         conn=None
@@ -138,7 +182,7 @@ class BudgetLedger:
         if now<account['cooldown_until_ms']:return 'provider_cooldown'
         if totals['requests_committed']+int(new)>limits.max_requests:return 'request_limit'
         if totals['tokens_committed']+(request.input_tokens+request.output_tokens if new else 0)>limits.max_total_tokens:return 'token_budget'
-        if totals['budget_committed_micro_usd']+(quote if new else 0)>limits.max_micro_usd:return 'money_budget'
+        if quote > 0 and totals['budget_committed_micro_usd']+(quote if new else 0)>limits.max_micro_usd:return 'money_budget'
         return None
 
     def reserve(self, account_id, request: Request) -> Decision:
@@ -159,7 +203,7 @@ class BudgetLedger:
             elif route.tariff is None:code='pricing_unknown'
             else:
                 quote=route.tariff.quote(request.input_tokens,request.output_tokens)
-                paid=bool(route.tariff.input_micro_usd_per_million or route.tariff.output_micro_usd_per_million)
+                paid=bool(route.tariff.request_micro_usd or route.tariff.input_micro_usd_per_million or route.tariff.output_micro_usd_per_million)
                 if paid and not policy.limits.allow_paid:code='paid_approval_required'
                 elif request.input_tokens>policy.limits.max_input_tokens:code='input_limit'
                 elif request.output_tokens>policy.limits.max_output_tokens:code='output_limit'

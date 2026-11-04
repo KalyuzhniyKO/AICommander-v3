@@ -356,3 +356,89 @@ def test_workflow_progress_blocked_cancelled_and_unverified_qa(browser_page):
     expect(page.locator('#stageProgress li[data-state="error"]')).not_to_have_count(0)
     expect(page.locator('#processDiagnostics')).to_contain_text('Отменён')
     expect(page.locator('#stageProgress')).not_to_contain_text('QA passed')
+
+def test_macbook_ui_polish_truthful_mock_and_status_feedback(browser_page):
+    """MacBook: correct Mock semantics, readable stages, confirmed request outcomes."""
+    page, expect = browser_page
+    expect(page.locator('#status')).to_have_text('Подключено')
+    expect(page.locator('#status')).to_have_attribute('data-status-kind', 'info')
+
+    # Successful GET refresh must not be advertised as a saved write.
+    page.locator('#refreshTasks').click()
+    expect(page.locator('#status')).to_have_text('Данные обновлены')
+
+    # A rejected POST must be visible to the owner, not marked "saved".
+    page.route('**/projects', lambda route: route.fulfill(
+        status=503, json={'detail': 'Тест: сохранение недоступно'}
+    ) if route.request.method == 'POST' else route.continue_())
+    page.locator('#projectName').fill('Отказанный тестовый проект')
+    page.locator('#projectForm button').click()
+    expect(page.locator('#status')).to_have_text('Тест: сохранение недоступно')
+    expect(page.locator('#status')).to_have_attribute('data-status-kind', 'error')
+    assert page.locator('#projectSelect option').filter(has_text='Отказанный тестовый проект').count() == 0
+    page.unroute('**/projects')
+
+    page.locator('#projectName').fill('Рабочий тестовый проект')
+    page.locator('#projectForm button').click()
+    expect(page.locator('#status')).to_have_text('Все изменения сохранены')
+    expect(page.locator('#status')).to_have_attribute('data-status-kind', 'success')
+
+    page.locator('#languageSelect').select_option('en')
+    expect(page.locator('#status')).to_have_text('All changes saved')
+    page.locator('#languageSelect').select_option('ru')
+    expect(page.locator('#status')).to_have_text('Все изменения сохранены')
+    create_task(page, expect, 'Демонстрация планирования без кода')
+    new_run(page, expect)
+    start(page, expect)
+    for count in (1, 2, 3):
+        step(page, expect, count)
+    snapshot = current(page)
+    assert snapshot['completion_scope'] == 'mock_artifacts_only'
+    expect(page.locator('#stageProgress')).to_contain_text('План разработчика')
+    expect(page.locator('#stageProgress')).to_contain_text('План готов')
+    expect(page.locator('#roleBoard')).to_contain_text('План разработчика')
+    expect(page.locator('#roleBoard')).to_contain_text('План готов')
+    expect(page.locator('#stageSummary')).to_contain_text('код и QA не проверены')
+    expect(page.locator('#approveTask')).to_be_enabled()
+    expect(page.locator('#stepTask')).to_be_disabled()
+    expect(page.locator('#stepTask')).to_have_css('opacity', '1')
+
+    writes = []
+    page.on('request', lambda request: writes.append(request.url) if request.method not in ('GET', 'HEAD') else None)
+    for locale in ('ru', 'en'):
+        page.locator('#languageSelect').select_option(locale)
+        expect(page.locator('#status')).to_have_text(
+            'Все изменения сохранены' if locale == 'ru' else 'All changes saved')
+        expect(page.locator('#stageProgress')).to_contain_text(
+            'План разработчика' if locale == 'ru' else 'Developer plan')
+        expect(page.locator('#stageProgress')).to_contain_text(
+            'План готов' if locale == 'ru' else 'Plan ready')
+        for width in (320, 390, 768, 1280, 1440):
+            page.set_viewport_size({'width': width, 'height': 900})
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), (locale, width)
+            # A browser Range spanning one word should have only one rectangle.
+            intact = page.locator('#stageProgress li span').evaluate_all("""spans => spans.every(span => {
+              const node = span.firstChild;
+              if (!node || node.nodeType !== Node.TEXT_NODE) return true;
+              const value = node.textContent;
+              const words = Array.from(value.matchAll(/\\S+/g));
+              return words.every(match => {
+                const range = document.createRange();
+                range.setStart(node, match.index);
+                range.setEnd(node, match.index + match[0].length);
+                return range.getClientRects().length === 1;
+              });
+            })""")
+            assert intact, (locale, width)
+            expect(page.locator('#stepTask')).to_be_disabled()
+    assert not writes
+    assert current(page) == snapshot
+
+    page.locator('#languageSelect').select_option('ru')
+    page.locator('#approveTask').click()
+    expect(page.locator('#status')).to_have_text('Все изменения сохранены')
+    expect(page.locator('#stepTask')).to_be_disabled()
+    expect(page.locator('#approveTask')).to_be_disabled()
+    expect(page.locator('#stageSummary')).to_contain_text('код и QA не проверены')
+    assert current(page)['status'] == 'done'
+

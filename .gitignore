@@ -28,3 +28,6 @@ dependency-audit.json
 # Private local workflow evidence/worktrees and its dedicated copied interpreter.
 .aicommander-local-runs/
 .venv-local-run/
+
+# Owner-controlled runtime pricing metadata; never copy fixture attestations here.
+config/spend-policy.json

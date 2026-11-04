@@ -16,6 +16,8 @@ from backend.app.orchestration.model_check import check_models
 from backend.app.storage.db import connect, init_db
 from backend.app.storage.repositories import Repository
 from backend.app.taskflow.api import create_router
+from backend.app.manual_chatgpt.api import create_manual_router
+from backend.app.budgets.api import create_spending_router
 from backend.app.localrun.panel import create_review_router
 from backend.app.taskflow.hermes_api import create_hermes_router
 
@@ -202,9 +204,13 @@ def decide(task_id:int, payload:dict, repo:RepositoryDependency):
 def recover_interrupted():
     with closing(connect(settings.database_path)) as conn:
         init_db(conn)
+        from backend.app.budgets.runtime import RuntimeSpend
+        RuntimeSpend(conn, settings).recover_interrupted()
         conn.execute("UPDATE tasks SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE status IN ('running','stopping')")
         conn.commit()
 
+app.include_router(create_manual_router(repository))
+app.include_router(create_spending_router(repository,lambda:settings))
 app.include_router(create_review_router(lambda: settings))
 app.include_router(create_router(repository))
 app.include_router(create_hermes_router(repository,lambda:settings))

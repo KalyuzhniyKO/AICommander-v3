@@ -21,6 +21,27 @@ from backend.app.taskflow.ports import UncertainOperation
 from backend.app.taskflow.service import Taskflow, FlowError
 
 
+@pytest.fixture(autouse=True)
+def declared_free_sdk_policy(tmp_path, monkeypatch):
+    import time
+    from backend.app import main
+    from backend.app.budgets.runtime import RuntimeSpend
+    now=time.time_ns()//1_000_000
+    path=tmp_path/'sdk-spend-policy.json'
+    path.write_text(json.dumps({'schema_version':1,'verified_at_ms':now-1000,'valid_until_ms':now+86399000,
+        'routes':[{'provider':'omniroute','base_url':'https://gateway.invalid','model_id':'synthetic/model',
+                   'roles':['analyst','architect','developer','reviewer'],'account_sha256':sha256(b'fixture-private-key').hexdigest(),
+                   'tariff':{'input_micro_usd_per_million':0,'output_micro_usd_per_million':0},
+                   'fixed_route_verified':True,'billing_categories_verified':True,'provider_caps_verified':True}]}),encoding='utf-8')
+    settings=replace(main.settings,spend_policy_file=str(path),omniroute=OmniRouteConfig(enabled=True,base_url='https://gateway.invalid',api_key='fixture-private-key'))
+    monkeypatch.setattr(main,'settings',settings)
+    original=FixtureDirector.reserve_budget
+    def reserve(self,conn,**kwargs):
+        if self.spending is None:self.spending=RuntimeSpend(conn,settings)
+        return original(self,conn,**kwargs)
+    monkeypatch.setattr(FixtureDirector,'reserve_budget',reserve)
+
+
 class FixtureRPC:
     def __init__(self):self.calls=[]
     def __call__(self, config, payload, cancelled):
@@ -187,3 +208,26 @@ def test_published_v2_contract_matches_validated_models():
     assert json.loads((contracts/'taskflow-v2.schema.json').read_text())==HermesRunSnapshot.model_json_schema()
     requests=json.loads((contracts/'taskflow-v2.requests.json').read_text())
     assert requests=={m.__name__:m.model_json_schema() for m in (HermesCreateRun,Command,OwnerDecision)}
+
+
+def test_budget_reservation_and_step_operation_insert_rollback_together(repository):
+    rpc=FixtureRPC();flow,run=prepare(repository,fixture_director(rpc))
+    repository.conn.execute("CREATE TRIGGER abort_operation BEFORE INSERT ON taskflow_operations BEGIN SELECT RAISE(ABORT,'synthetic'); END")
+    with pytest.raises(sqlite3.IntegrityError):step(flow,run)
+    assert rpc.calls==[]
+    assert repository.conn.execute('SELECT COUNT(*) FROM spend_permissions').fetchone()[0]==0
+    assert repository.conn.execute('SELECT COUNT(*) FROM budget_requests').fetchone()[0]==0
+
+
+def test_budget_outcome_and_saved_model_result_rollback_together(repository):
+    rpc=FixtureRPC();director=fixture_director(rpc);flow,run=prepare(repository,director)
+    repository.conn.execute("CREATE TRIGGER abort_result BEFORE UPDATE ON taskflow_operations WHEN NEW.state='result_ready' BEGIN SELECT RAISE(ABORT,'synthetic'); END")
+    with pytest.raises(sqlite3.IntegrityError):step(flow,run)
+    assert len(rpc.calls)==1
+    assert repository.conn.execute('SELECT state FROM spend_permissions').fetchone()[0]=='dispatched'
+    assert repository.conn.execute('SELECT state FROM taskflow_operations').fetchone()[0]=='running'
+    director.spending.recover_interrupted()
+    assert repository.conn.execute('SELECT state FROM spend_permissions').fetchone()[0]=='unknown'
+    assert director.spending.ledger.report('runtime.global')['states']=={'unknown':1}
+    with pytest.raises(FlowError):step(flow,run)
+    assert len(rpc.calls)==1

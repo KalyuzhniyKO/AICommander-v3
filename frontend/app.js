@@ -1,6 +1,9 @@
-let mode = 'mock', operations = [], operationError = false;
+let mode = 'mock', operations = [], operationError = false, hermesCapabilities = null, hermesHistoryReady = false;
 const isHermes = () => mode === 'hermes';
 const flowRoot = () => isHermes() ? '/taskflow/v2' : '/taskflow';
+const ownerPlanning = () => hermesHistoryReady && hermesCapabilities?.owner_controls_version === 1 && hermesCapabilities?.runtime_budget_guarded === true;
+const modelPlanning = () => ownerPlanning() && hermesCapabilities?.configured === true;
+const unsettled = () => operationError || operations.some(op => ['running','result_ready','unknown'].includes(op.state));
 let task = null, tasks = [], projects = [], runs = [], run = null, busy = false, pending = null;
 const el = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -30,36 +33,59 @@ async function api(path, method = 'GET', payload) {
       throw error;
     }
     return data;
-  } finally { clearTimeout(timeout); }
+  } finally { clearTimeout(timeout); if(method!=='GET')document.dispatchEvent(new Event('spend-refresh')); }
 }
-function status(text) { el('status').textContent = tr(text); }
+function status(text, kind = 'info') {
+  // Read-only actions cannot be presented as confirmed writes.
+  const box = el('status');
+  box.dataset.statusKey = text;
+  box.dataset.statusKind = kind;
+  box.textContent = tr(text);
+  box.classList.toggle('success', kind === 'success');
+  box.classList.toggle('error', kind === 'error');
+}
+const stageRoleName = role => !isHermes() && role === 'developer'
+  ? (panelLocale.language === 'en' ? 'Developer plan' : 'План разработчика')
+  : label(role);
+const stageCompletionName = stage => !isHermes() && stage.role === 'developer' && stage.status === 'completed'
+  ? (panelLocale.language === 'en' ? 'Plan ready' : 'План готов')
+  : label(stage.status);
 function controls() {
   const locked = busy || Boolean(pending), state = run?.status;
+  const manage = !isHermes() || modelPlanning(), owner = !isHermes() || ownerPlanning();
+  const unresolved = isHermes() && unsettled();
   el('flowMode').disabled = locked;
-  el('processActionsHeading').parentElement.classList.toggle('hermes-actions', isHermes());
+  el('processActionsHeading').parentElement.classList.toggle('hermes-actions', isHermes() && !manage);
   el('projectSelect').disabled = locked;
-  el('maxSteps').disabled = locked || isHermes();
-  el('maxSteps').parentElement.hidden = isHermes();
-  el('runSelect').parentElement.parentElement.classList.toggle('hermes-settings', isHermes());
-  for (const id of ['newRun','runTask','stepTask','pauseTask','approveTask','rejectTask']) el(id).hidden = isHermes();
+  el('maxSteps').disabled = locked || !manage;
+  el('maxSteps').parentElement.hidden = !manage;
+  el('runSelect').parentElement.parentElement.classList.toggle('hermes-settings', !manage);
+  el('architectSetting').hidden = !isHermes() || !manage;
+  el('includeArchitect').disabled = locked;
+  for (const id of ['newRun','runTask','stepTask','pauseTask']) el(id).hidden = !manage;
+  for (const id of ['approveTask','rejectTask']) el(id).hidden = !owner;
   el('runSelect').disabled = locked;
-  el('newRun').disabled = locked || isHermes() || !task;
-  el('runTask').disabled = locked || isHermes() || !['planned','blocked','failed'].includes(state) || (['blocked','failed'].includes(state) && run.steps_done >= run.max_steps && run.stages.some(s => s.status !== 'completed'));
+  el('newRun').disabled = locked || !manage || !task || (unresolved && !['cancelled','done'].includes(state));
+  el('runTask').disabled = locked || !manage || unresolved || !['planned','blocked','failed'].includes(state) || (['blocked','failed'].includes(state) && run.steps_done >= run.max_steps && run.stages.some(s => s.status !== 'completed'));
   el('runTask').textContent = state === 'planned' ? tr('Запустить процесс') : tr('Продолжить / Повторить');
-  el('stepTask').disabled = locked || isHermes() || state !== 'running';
-  el('pauseTask').disabled = locked || isHermes() || state !== 'running';
+  el('stepTask').disabled = locked || !manage || unresolved || state !== 'running';
+  el('pauseTask').disabled = locked || !manage || unresolved || state !== 'running';
   el('stopTask').disabled = locked || !['planned','running','blocked','failed','awaiting_owner'].includes(state);
-  el('approveTask').disabled = locked || isHermes() || state !== 'awaiting_owner';
-  el('rejectTask').disabled = locked || isHermes() || state !== 'awaiting_owner';
+  el('approveTask').disabled = locked || !owner || unresolved || state !== 'awaiting_owner';
+  el('rejectTask').disabled = locked || !owner || unresolved || state !== 'awaiting_owner';
   el('retryRequest').hidden = !pending;
   el('retryRequest').disabled = busy || !pending;
-  document.querySelectorAll('button[type="submit"], [data-task]').forEach(button => button.disabled = locked);
+  document.querySelectorAll('#projectForm button[type="submit"], #taskForm button[type="submit"], [data-task]').forEach(button => button.disabled = locked);
 }
-async function action(fn) {
+
+async function action(fn, writes = false) {
   if (busy) return;
   busy = true; controls();
-  try { await fn(); status('Сохранено'); }
-  catch (error) { status(error.message); }
+  if (writes) status('Сохранение…');
+  try {
+    await fn();
+    status(writes ? 'Все изменения сохранены' : 'Данные обновлены', writes ? 'success' : 'info');
+  } catch (error) { status(error.message, 'error'); }
   finally { busy = false; controls(); }
 }
 function renderTasks() {
@@ -83,7 +109,7 @@ function renderDirector() {
   const messages = [bubble('owner', en ? 'Owner · saved requirement' : 'Владелец · сохранённое требование', task.description)];
   if (!run) {
     messages.push(bubble('mock', isHermes() ? 'Hermes' : 'Mock Director',
-      isHermes() ? (en ? 'No stored Hermes runs for this task. Model launch is unavailable in this panel.' : 'У задачи нет сохранённых процессов Hermes. Запуск моделей из панели недоступен.') : en ? 'No run selected. Create a run; this does not contact Hermes or execute code.'
+      isHermes() ? (modelPlanning() ? (en ? 'No saved Hermes run. Create a planning run; this does not call models.' : 'Нет сохранённого процесса Hermes. Создайте процесс планирования; это не вызывает модели.') : (en ? 'No stored Hermes runs for this task. Model launch is unavailable in this panel.' : 'У задачи нет сохранённых процессов Hermes. Запуск моделей из панели недоступен.')) : en ? 'No run selected. Create a run; this does not contact Hermes or execute code.'
          : 'Процесс не выбран. Создай процесс; это не вызывает Hermes и не исполняет код.'));
   } else {
     const state = isHermes()
@@ -111,18 +137,23 @@ function renderMode() {
   // Restore translated static Mock copy before applying Hermes-only copy.
   panelLocale.apply();
   const en = panelLocale.language === 'en';
-  el('modeHint').textContent = isHermes()
-    ? (en ? 'Stored Hermes history: view and cancel only. Starting models and approving plans are unavailable here.' : 'История Hermes: доступны просмотр и отмена. Запуск моделей и согласование планов здесь недоступны.') : '';
+  el('modeHint').textContent = !isHermes() ? '' : modelPlanning()
+    ? (en ? 'Hermes planning controls are enabled. Every model step passes the runtime budget gate; code and QA are not executed.' : 'Доступно управление планированием Hermes. Каждый шаг модели проходит проверку бюджета; код и QA не выполняются.')
+    : ownerPlanning() ? (en ? 'Stored plan decisions and cancellation are available. New Hermes execution is not configured.' : 'Доступны решения по сохранённому плану и отмена. Новый запуск Hermes не настроен.')
+    : (en ? 'Management capabilities are unconfirmed: history and cancellation only.' : 'Возможности управления не подтверждены: только история и отмена.');
   el('operationPanel').hidden = !isHermes();
   if (!isHermes()) return;
   document.querySelector('.notice.warning').textContent = en
     ? 'Hermes · stored planning artifacts. Code, task tests and deployment were not executed. Viewing history does not call models.'
     : 'Hermes · сохранённые артефакты планирования. Код, тесты задач и deploy не выполнялись. Просмотр истории не вызывает модели.';
-  el('actionHint').textContent = en ? 'Cancellation is final. An unknown operation is never automatically restarted.' : 'Отмена окончательная. Операция с неизвестным исходом не перезапускается автоматически.';
+  el('actionHint').textContent = modelPlanning() ? (en ? 'Next step explicitly calls the configured model only within the approved budget. Approval accepts planning artifacts only. Unknown operations are never automatically restarted.' : 'Следующий шаг явно вызывает настроенную модель только в разрешённом бюджете. Согласование принимает только артефакты планирования. Неизвестные операции автоматически не повторяются.') : (en ? 'Cancellation is final. Plan approval does not verify code or tests. Unknown operations are never automatically restarted.' : 'Отмена окончательная. Согласование плана не подтверждает код или тесты. Неизвестные операции автоматически не повторяются.');
+  el('approveTask').textContent = en ? 'Approve plan' : 'Согласовать план';
+  el('rejectTask').textContent = en ? 'Reject plan' : 'Отклонить план';
+  el('architectSettingLabel').textContent = en ? 'Include Architect in the new plan (one additional model step)' : 'Добавить архитектора к новому плану (дополнительный шаг модели)';
   el('directorHeading').textContent = en ? 'Hermes · saved activity' : 'Hermes · сохранённый ход работы';
   el('directorDisclaimer').textContent = en ? 'Only stored events and artifacts are shown. A planning review is not a code or test review.' : 'Показаны только сохранённые события и артефакты. Ревью плана не является проверкой кода или тестов.';
   el('directorMessages').setAttribute('aria-label', en ? 'Hermes process history' : 'История процесса Hermes');
-  document.querySelector('label[for="commentText"]').textContent = en ? 'Cancellation comment' : 'Комментарий к отмене';
+  document.querySelector('label[for="commentText"]').textContent = en ? 'Planning decision or cancellation comment' : 'Комментарий к решению по плану или отмене';
   el('artifactsHeading').textContent = en ? 'Planning artifacts · Hermes' : 'Артефакты планирования · Hermes';
 }
 function renderOperations() {
@@ -145,9 +176,9 @@ function renderProgress() {
     : {pending:'Не начато',active:'Выполняется',completed:'Завершено',error:'Ошибка / блокировка',
         waiting:'Ожидает владельца',unknown:'Исход неизвестен'};
   const items = [];
-  const add = (name, state) => {
+  const add = (name, state, stateText) => {
     const safe = Object.hasOwn(stateNames, state) ? state : 'pending';
-    items.push(`<li class="stage-indicator" data-state="${safe}"><span>${esc(name)}<br><small>${esc(stateNames[safe])}</small></span></li>`);
+    items.push(`<li class="stage-indicator" data-state="${safe}"><span>${esc(name)}<br><small>${esc(stateText || stateNames[safe])}</small></span></li>`);
   };
   if (!task) {
     add(en ? 'Task' : 'Задача', 'pending');
@@ -160,13 +191,15 @@ function renderProgress() {
           : stage.status === 'completed' ? 'completed'
           : ['failed','blocked','cancelled'].includes(stage.status) ? 'error'
           : stage.status === 'ready' && run.status === 'running' ? 'active' : 'pending';
-        add(label(stage.role), stageStatus);
+        add(stageRoleName(stage.role), stageStatus,
+          !isHermes() && stage.role === 'developer' && stageStatus === 'completed'
+            ? (en ? 'Plan ready' : 'План готов') : null);
       }
       const ownerState = run.status === 'awaiting_owner' ? 'waiting'
         : run.status === 'done' ? 'completed'
         : run.owner_decision === 'rejected' ? 'error' : 'pending';
       add(en ? 'Owner decision' : 'Решение владельца', ownerState);
-      add(en ? 'Planning outcome' : 'Итог планирования',
+      add(en ? 'Plan result' : 'План готов',
         run.status === 'done' ? 'completed' : ['failed','cancelled'].includes(run.status) ? 'error' : 'pending');
     }
   }
@@ -207,6 +240,10 @@ function renderProgress() {
 }
 
 function renderDetail() {
+  window.panelCurrentTaskId=task?.id??null;
+  window.panelCurrentRunId=run?.run_id??null;
+  window.panelExecutionMode=mode;
+  document.dispatchEvent(new CustomEvent('panel-task-change',{detail:{taskId:task?.id??null,runId:run?.run_id??null,version:run?.version??null,mode}}));
   renderMode();
   el('taskTitle').textContent = task?.title || tr('Выбери задачу');
   el('taskMeta').textContent = run ? (panelLocale.language === 'en' ? `Task #${task.id} · Run #${run.run_id} · ${runLabel()} · Version ${run.version} · Steps ${run.steps_done}/${run.max_steps}` : `Задача #${task.id} · Процесс #${run.run_id} · ${runLabel()} · Версия ${run.version} · Шаги ${run.steps_done}/${run.max_steps}`) : tr('Процесс не выбран');
@@ -214,17 +251,23 @@ function renderDetail() {
   el('runSelect').innerHTML = runs.map(r => `<option value="${r.run_id}">#${r.run_id} · ${esc(runLabel(r))}</option>`).join('');
   if (run) el('runSelect').value = run.run_id;
   el('flowReason').textContent = run?.reason || '';
-  el('roleBoard').innerHTML = (run?.stages || []).map(s => `<article class="role"><strong>${esc(label(s.role))}</strong><p>${esc(label(s.status))}</p></article>`).join('');
+  el('roleBoard').innerHTML = (run?.stages || []).map(s => `<article class="role"><strong>${esc(stageRoleName(s.role))}</strong><p>${esc(stageCompletionName(s))}</p></article>`).join('');
   el('artifacts').innerHTML = (run?.artifacts || []).map(a => `<details><summary>${esc(label(a.role))} · ${esc(a.type)} · #${a.artifact_id} · ${isHermes() ? 'Hermes · '+esc(panelLocale.language === 'en' ? 'planning only' : 'только планирование') : 'mock'}</summary><p>${esc(tr('Входы:'))} ${esc(a.input_artifact_ids.join(', ') || tr('нет'))} · ${esc(a.created_at)}</p>${isHermes() && a.provenance ? `<p class="provenance">${esc(a.provenance.origin)} · ${esc(a.provenance.model_id)}<br>SDK: ${esc(a.provenance.sdk_commit)}<br>Operation: ${esc(a.provenance.operation_id)}<br>Input SHA-256: ${esc(a.provenance.input_sha256)}</p>` : ''}<pre>${esc(JSON.stringify(a.content,null,2))}</pre></details>`).join('') || `<p>${esc(tr('Артефактов пока нет.'))}</p>`;
   el('decisions').innerHTML = (run?.timeline || []).map(e => `<p>v${e.version} · ${esc(label(e.action) || e.action)} → ${esc(label(e.to_status))} · ${esc(e.created_at)}<br>${esc(e.reason)}</p>`).join('') || `<p>${esc(tr('Событий пока нет.'))}</p>`;
   el('rounds').innerHTML = (task?.rounds || []).map(r => `<article class="round-card"><h4>${esc(panelLocale.language === 'en' ? 'Legacy round' : 'Legacy раунд')} ${r.round_number}</h4>` + r.role_outputs.map(o => `<details><summary>${esc(o.role)} · ${esc(o.status)}</summary><pre>${esc(o.output)}</pre></details>`).join('') + '</article>').join('') || `<p>${esc(tr('Legacy-раундов нет.'))}</p>`;
   controls(); renderTasks(); renderDirector(); renderOperations(); renderProgress(); renderCachedModels();
 }
 async function selectTask(id, selectedRun) {
+  if(isHermes()){hermesHistoryReady=false;hermesCapabilities=null;}
   const [selectedTask, selectedRuns] = await Promise.all([api('/tasks/' + id), api(`${flowRoot()}/tasks/${id}/runs`)]);
   task = selectedTask; runs = selectedRuns;
   run = runs.find(r => r.run_id === selectedRun) || runs[0] || null;
   operations = []; operationError = false;
+  if (isHermes()) {
+    hermesHistoryReady = true;
+    try { hermesCapabilities = await api('/taskflow/v2/capabilities'); }
+    catch (error) { hermesCapabilities = null; }
+  }
   if (isHermes() && run) {
     try { operations = await api(`${flowRoot()}/runs/${run.run_id}/operations`); }
     catch (error) { operationError = true; }
@@ -238,8 +281,8 @@ async function refreshTasks() {
 }
 function renderCachedModels() {
   if (!cachedModels) return;
-  el('cost').textContent = isHermes() ? (panelLocale.language === 'en' ? 'Stored planning artifacts are not a cost report. Actual model costs are unavailable.' : 'Артефакты планирования не являются отчётом о затратах. Фактическая стоимость вызовов недоступна.') : tr('Taskflow работает с Mock Director без вызовов моделей. Учёт затрат реальных моделей ожидает #18.');
-  el('models').innerHTML = (isHermes() ? [] : cachedModels.models).map(m => `<p>${esc(m.role)} · ${esc(m.model_id)} · ${esc(m.status)}</p>`).join('') || `<p>${esc(isHermes() ? (panelLocale.language === 'en' ? 'Provider availability and quotas are not checked in this view.' : 'Доступность провайдеров и квоты в этом режиме не проверяются.') : tr('В legacy-раундах модели ещё не вызывались.'))}</p>`;
+  el('cost').textContent = isHermes() ? (panelLocale.language === 'en' ? 'Stored planning artifacts are not a cost report. See Budget and spending for API accounting.' : 'Артефакты планирования не являются отчётом о затратах. Учёт API показан в разделе «Бюджет и расходы».') : (panelLocale.language === 'en' ? 'Mock Director does not call models. API accounting is shown under Budget and spending.' : 'Mock Director не вызывает модели. Учёт API показан в разделе «Бюджет и расходы».');
+  el('models').innerHTML = (isHermes() ? [] : cachedModels.models).map(m => `<p>${esc(m.role)} · ${esc(m.model_id)} · ${esc(m.status === 'blocked_budget' ? (panelLocale.language === 'en' ? 'Budget blocked' : 'Заблокировано бюджетом') : m.status)}</p>`).join('') || `<p>${esc(isHermes() ? (panelLocale.language === 'en' ? 'Provider availability and quotas are not checked in this view.' : 'Доступность провайдеров и квоты в этом режиме не проверяются.') : tr('В legacy-раундах модели ещё не вызывались.'))}</p>`;
 }
 async function refreshModels() {
   cachedModels = await api('/panel/status');
@@ -271,17 +314,24 @@ async function sendPending() {
   renderTasks();
 }
 function mutate(path, body) {
-  if (pending) return;
-  if (isHermes() && !(path === `${flowRoot()}/runs/${run?.run_id}/commands` && body.action === 'cancel')) throw new Error('Hermes: view and cancel only');
+  if (pending) throw new Error(tr('Завершите предыдущий запрос.'));
+  if (isHermes()) {
+    const commands = path === `${flowRoot()}/runs/${run?.run_id}/commands`;
+    const cancel = commands && body.action === 'cancel';
+    const create = path === `${flowRoot()}/tasks/${task?.id}/runs` && modelPlanning() && (!unsettled() || ['cancelled','done'].includes(run?.status));
+    const step = commands && ['start','resume','step','block'].includes(body.action) && modelPlanning() && !unsettled();
+    const decision = path === `${flowRoot()}/runs/${run?.run_id}/owner-decision` && ['approve','reject'].includes(body.decision) && ownerPlanning() && !unsettled();
+    if (!(cancel || create || step || decision)) throw new Error(tr('Управление Hermes не подтверждено.'));
+  }
   pending = {path, body:{...body,idempotency_key:crypto.randomUUID()},taskId:task.id,runId:run?.run_id};
   return sendPending();
 }
 el('projectForm').onsubmit = event => { event.preventDefault(); action(async () => {
   const project = await api('/projects','POST',{name:el('projectName').value});
   projects.push(project); renderProjects(project.id); el('projectName').value = ''; task = run = null; runs = []; operations = []; operationError = false; renderDetail();
-}); };
+}, true); };
 el('flowMode').onchange = () => action(async () => {
-  mode = el('flowMode').value; el('commentText').value = ''; run = null; runs = []; operations = []; operationError = false; renderDetail();
+  mode = el('flowMode').value; hermesCapabilities = null; hermesHistoryReady = false; el('includeArchitect').checked = false; el('commentText').value = ''; run = null; runs = []; operations = []; operationError = false; renderDetail();
   if (task) await selectTask(task.id);
 });
 el('projectSelect').onchange = () => { task = run = null; runs = []; operations = []; operationError = false; renderDetail(); };
@@ -289,24 +339,25 @@ el('runSelect').onchange = () => action(() => selectTask(task.id,Number(el('runS
 el('taskForm').onsubmit = event => { event.preventDefault(); action(async () => {
   task = await api('/tasks','POST',{description:el('taskText').value,project_id:Number(el('projectSelect').value)});
   el('taskText').value = ''; run = null; runs = []; await refreshTasks();
-}); };
-el('newRun').onclick = () => action(() => mutate(`${flowRoot()}/tasks/${task.id}/runs`, {max_steps:Number(el('maxSteps').value)}));
+}, true); };
+el('newRun').onclick = () => action(() => mutate(`${flowRoot()}/tasks/${task.id}/runs`, {max_steps:Number(el('maxSteps').value),...(isHermes() ? {include_architect:el('includeArchitect').checked} : {})}), true);
+el('includeArchitect').onchange = () => { if (el('includeArchitect').checked && Number(el('maxSteps').value) < 4) el('maxSteps').value = '4'; };
 function command(actionName) {
   return mutate(`${flowRoot()}/runs/${run.run_id}/commands`, {action:actionName,expected_version:run.version,reason:el('commentText').value});
 }
-el('runTask').onclick = () => action(() => command(run.status === 'planned' ? 'start' : 'resume'));
-el('stepTask').onclick = () => action(() => command('step'));
-el('pauseTask').onclick = () => action(() => command('block'));
-el('stopTask').onclick = () => action(() => command('cancel'));
+el('runTask').onclick = () => action(() => command(run.status === 'planned' ? 'start' : 'resume'), true);
+el('stepTask').onclick = () => action(() => command('step'), true);
+el('pauseTask').onclick = () => action(() => command('block'), true);
+el('stopTask').onclick = () => action(() => command('cancel'), true);
 for (const [id, decision] of [['approveTask','approve'],['rejectTask','reject']]) {
-  el(id).onclick = () => action(() => mutate(`${flowRoot()}/runs/${run.run_id}/owner-decision`,{decision,expected_version:run.version,reason:el('commentText').value}));
+  el(id).onclick = () => action(() => mutate(`${flowRoot()}/runs/${run.run_id}/owner-decision`,{decision,expected_version:run.version,reason:el('commentText').value}), true);
 }
-el('retryRequest').onclick = () => action(sendPending);
+el('retryRequest').onclick = () => action(sendPending, true);
 el('refreshTasks').onclick = () => action(refreshTasks);
 el('refreshModels').onclick = () => action(refreshModels);
 async function init() {
   try { projects = await api('/projects'); renderProjects(); await refreshTasks(); await refreshModels(); status('Подключено'); }
-  catch (error) { status(error.message); }
+  catch (error) { status(error.message, 'error'); }
   controls(); renderDirector();
 }
 el('languageSelect').onchange = () => panelLocale.setLanguage(el('languageSelect').value);
