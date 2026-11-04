@@ -20,7 +20,7 @@
 <details id="diagnosticDetails" class="diagnostic-details"><summary id="diagnosticsHeading">Диагностика процесса</summary><dl id="processDiagnostics" class="diagnostic-grid"></dl></details></section>
 <div class="command-groups">
 <section class="action-group action-group--process" aria-labelledby="processActionsHeading"><h3 id="processActionsHeading">Управление процессом</h3><div class="action-buttons">
-<button id="newRun">Новый процесс</button><button id="runTask">Запустить процесс</button><button id="stepTask">Следующий шаг</button><button id="pauseTask">Пауза</button><button id="stopTask" class="danger">Отменить процесс</button></div></section>
+<p id="architectSetting" hidden><label><input id="includeArchitect" type="checkbox"><span id="architectSettingLabel">Добавить архитектора к новому плану (дополнительный шаг модели)</span></label></p><button id="newRun">Новый процесс</button><button id="runTask">Запустить процесс</button><button id="stepTask">Следующий шаг</button><button id="pauseTask">Пауза</button><button id="stopTask" class="danger">Отменить процесс</button></div></section>
 <section class="action-group action-group--owner" aria-labelledby="ownerActionsHeading"><h3 id="ownerActionsHeading">Решение владельца</h3><div class="action-buttons">
 <button id="approveTask" class="primary">Подтвердить</button><button id="rejectTask">Отклонить</button></div></section></div>
 <button id="retryRequest" hidden>Повторить запрос</button><p class="hint" id="actionHint">Каждый шаг создаёт один mock-артефакт. Отмена окончательная; для повторной работы создайте новый процесс. После отказа доступно продолжение без пересоздания артефактов.</p>

@@ -1,5 +1,7 @@
 # Подготовка панели #19: сохранённая история Hermes
 
+**Обновление 27.10.2026:** [действия владельца под бюджетным контролем](HERMES_OWNER_CONTROLS.md) расширяют исходный read-only этап. Они не выполняют код или QA.
+
 [English](HERMES_PANEL.en.md) · [Issue #19](https://github.com/KalyuzhniyKO/AICommander-v3/issues/19)
 
 В существующей панели добавлен выбор **Режим истории → Hermes · сохранённое

@@ -167,3 +167,5 @@ readiness False. В HTTP/UI/taskflow не подключено, полные #15
 [Контроль расходов в runtime](docs/RUNTIME_SPENDING.md): платный API запрещён по умолчанию, scoped бюджеты/резервы и подтверждения владельца подключены к текущим путям inference. Это не live-приёмка тарифов/caps.
 
 [Ручной ChatGPT](docs/MANUAL_CHATGPT.md): latest_available / High, кеш публичных сведений и подтверждённый владельцем export/import; без автоматизации аккаунта и вызовов API моделей.
+
+[Действия владельца Hermes](docs/HERMES_OWNER_CONTROLS.md): защищённое пошаговое планирование и решения по сохранённому плану под runtime-бюджетом; код/QA — отдельные этапы.

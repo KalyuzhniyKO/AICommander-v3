@@ -33,5 +33,10 @@
     "paid_api_policy_changed": false,
     "independent_review_or_qa_attested": false
   },
-  "ci": "Pending exact-head verification"
+  "ci": {
+    "passed": 22,
+    "head": "a13fa9d3fddf2e5eaf519a9637a947738255db80",
+    "pull_request": 63,
+    "run_url": "https://github.com/KalyuzhniyKO/AICommander-v3/actions/runs/40582696764"
+  }
 }

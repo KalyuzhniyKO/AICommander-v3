@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-27",
+  "scope": "hermes_owner_planning_controls",
+  "local_full_suite": {
+    "passed": 586,
+    "skipped": 2,
+    "exit_code": 0
+  },
+  "focused_ui": {
+    "passed": 14,
+    "exit_code": 0
+  },
+  "focused_backend": {
+    "passed": 16,
+    "exit_code": 0
+  },
+  "coverage": [
+    "owner creation and optional Architect",
+    "pause/resume without inference",
+    "explicit budget-guarded model steps",
+    "offline saved-plan approval",
+    "default deny without RPC",
+    "lost response exact replay, one inference",
+    "capability failure, cancel retained",
+    "unknown-operation barrier",
+    "RU/EN planning labels"
+  ],
+  "upstream": "Synthetic SDK files/RPC and zero-price attestations; actual local browser/HTTP/SQLite/runtime budget gate.",
+  "live_zorin_probe": {
+    "attempted": true,
+    "result": "ssh_connection_timeout",
+    "provider_configs_read": false,
+    "model_inference": false,
+    "deployment": false
+  },
+  "unchanged_boundaries": {
+    "code_executed": false,
+    "qa_verified": false,
+    "merge_or_deploy_authorized_by_ui": false
+  },
+  "ci": "Pending exact-head checks"
+}

@@ -79,9 +79,11 @@ def test_saved_hermes_roles_provenance_language_and_mobile_without_model_command
         expect(page.locator('#artifactsHeading')).to_contain_text('Hermes')
         expect(page.locator('#directorHeading')).to_contain_text('Hermes')
         expect(page.locator('.notice')).not_to_contain_text('Mock Director')
-        for button in ('newRun','runTask','stepTask','pauseTask','approveTask','rejectTask'):
+        for button in ('newRun','runTask','stepTask','pauseTask'):
             expect(page.locator('#'+button)).to_be_disabled()
             expect(page.locator('#'+button)).to_be_hidden()
+        expect(page.locator('#approveTask')).to_be_visible()
+        expect(page.locator('#rejectTask')).to_be_visible()
         for size,width,height in (('desktop',1440,1050),('mobile',390,844)):
             page.set_viewport_size({'width':width,'height':height})
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
@@ -207,7 +209,7 @@ def test_hermes_progress_uses_only_saved_roles_and_unknown_operations(browser_pa
     assert page.locator('#stageProgress li').count() == 6
     expect(page.locator('#stageProgress li').nth(4)).to_have_attribute('data-state', 'waiting')
     expect(page.locator('#stageSummary')).to_contain_text('код и QA не проверены')
-    expect(page.locator('#approveTask')).to_be_hidden()
+    expect(page.locator('#approveTask')).to_be_visible()
     page.locator('#languageSelect').select_option('en')
     expect(page.locator('#stageProgress')).to_contain_text('Plan reviewer')
     expect(page.locator('#stageSummary')).to_contain_text('code and QA not verified')

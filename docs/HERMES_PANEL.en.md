@@ -1,5 +1,7 @@
 # Panel preparation #19: stored Hermes history
 
+**Update 2026-10-27:** [budget-guarded owner planning controls](HERMES_OWNER_CONTROLS.en.md) extend this original read-only preparation. They do not execute code or QA.
+
 [Русский](HERMES_PANEL.md) · [Issue #19](https://github.com/KalyuzhniyKO/AICommander-v3/issues/19)
 
 The existing panel now has **History mode → Hermes · stored planning**. Mock is the
