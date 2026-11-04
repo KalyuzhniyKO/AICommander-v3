@@ -131,6 +131,7 @@ def run_command(workspace_id, command_id, spec, cwd, env, cancel, redact):
     except (OSError, ValueError):
         raise ExecutionError("Test process could not be started") from None
     finally:
+        cleanup_failed = False
         # Also reap background descendants when the direct process exits normally.
         if job:
             job.close()
@@ -139,10 +140,22 @@ def run_command(workspace_id, command_id, spec, cwd, env, cancel, redact):
                 os.killpg(process.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
+            except OSError:
+                # Group cleanup may be denied on macOS. Still reap our direct child,
+                # but never report successful containment for an unconfirmed tree.
+                cleanup_failed = True
         if process:
-            if process.poll() is None:
-                process.kill()
-            process.wait(timeout=5)
+            try:
+                if process.poll() is None:
+                    process.kill()
+            except ProcessLookupError:
+                pass
+            except OSError:
+                cleanup_failed = True
+            try:
+                process.wait(timeout=5)
+            except (OSError, subprocess.TimeoutExpired):
+                cleanup_failed = True
             if process.stdin and not process.stdin.closed:
                 process.stdin.close()
             for capture in captures:
@@ -152,6 +165,8 @@ def run_command(workspace_id, command_id, spec, cwd, env, cancel, redact):
             if not captures:
                 process.stdout.close()
                 process.stderr.close()
+        if cleanup_failed:
+            raise ExecutionError("Process tree cleanup failed; command containment unconfirmed") from None
     truncated = overflow.is_set() or any(len(c.data) > spec.max_output_bytes for c in captures)
     if overflow.is_set() and outcome == "exited":
         outcome = "output_limit"
