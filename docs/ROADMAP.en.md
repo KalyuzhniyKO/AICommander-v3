@@ -1,14 +1,19 @@
 # AICommander 3.0 — dependency-aware roadmap
 
+
+## Verified update — 4 November 2026
+
+PR #62 connects [runtime spending controls](RUNTIME_SPENDING.en.md) to current inference paths (default deny, scoped reservations and owner approvals). PR #63 provides a manual ChatGPT handoff. Merged PR #64 enables [Hermes owner planning controls](HERMES_OWNER_CONTROLS.en.md), gated by capabilities and budget configuration. Saved-plan approval keeps `code_executed=false` and `qa_verified=false`. These changes were verified by 11 successful CI jobs at PR #64 head `0d36b3359488d901c22d5377222a620cb041cbba`; they do not establish live Zorin/provider acceptance. Next: final Hermes live acceptance, Codex/executor → QA → independent code Reviewer → draft PR, then an isolated warehouse pilot.
+
 [Русская версия](ROADMAP.md) · [Current implementation](IMPLEMENTATION.en.md) · [Historical audit](AUDIT_2026-10-15.md)
 
-## Current `main` status — 18 October 2026
+## Current `main` status — 4 November 2026
 
 - **#10–#13 closed:** authorized OmniRoute/Hermes live transport/inventory checks were completed after [PR #41](https://github.com/KalyuzhniyKO/AICommander-v3/pull/41).
 - **#14 open:** Hermes taskflow v2 provides real planning and role handoffs. Final complete live acceptance still blocked by provider quota.
 - **#15/#16 open:** [PR #52](https://github.com/KalyuzhniyKO/AICommander-v3/pull/52) merged a *standalone offline* trusted worktree → real pytest/Django checks → review-bundle path. No Codex CLI/taskflow wiring or independent Reviewer.
 - **#17 open:** read-only GitHub exact-head CI status; no draft PR publication.
-- **#18 open:** offline budget ledger, not enforced in runtime.
+- **#18 open:** PR #62 connects default-deny runtime budgets and scoped reservations to current inference paths; live tariff/usage/cap acceptance remains pending.
 - **#19 open:** [PR #54](https://github.com/KalyuzhniyKO/AICommander-v3/pull/54) merged aligned controls, saved-state traffic lights and diagnostics plus RU/EN fix; [PR #56](https://github.com/KalyuzhniyKO/AICommander-v3/pull/56) merged an optional read-only saved QA/Git diff viewer, separate from taskflow. No end-to-end command from the panel.
 - **#20 open:** app-layer security work complete in part; OS/network sandbox pending.
 - **#21/#22 open:** isolated warehouse pilot, Zorin deployment and restore acceptance pending; a standalone SQLite backup module exists.
