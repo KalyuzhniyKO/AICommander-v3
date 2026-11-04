@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-04",
+  "live_inference_calls": 0,
+  "owner_additional_paid_budget_micro_usd": 0,
+  "live_acceptance_complete": false,
+  "blocker": "No current verified free-route spending policy; additional paid spending not authorized",
+  "offline_checks": [
+    {
+      "command": "pytest -q -rs (before UI dependency installation)",
+      "exit_code": 0,
+      "passed": 569,
+      "skipped": 39,
+      "skip_scope": "2 Windows-only, 37 missing Playwright"
+    },
+    {
+      "command": "RUN_UI_TESTS=1 pytest -q tests/ui",
+      "exit_code": 0,
+      "passed": 37
+    },
+    {
+      "command": "compileall / pip check / git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "zorin": {
+    "ssh": true,
+    "kernel": "7.0.0-42-generic",
+    "system_python": "3.12.3",
+    "selected_hermes_python": "3.14.9",
+    "hermes_commit": "bf0203a794a07aac3ff764972ab9087baa4e4f4e",
+    "stamp_matches_checkout": true,
+    "omniroute_version": "3.8.51",
+    "omniroute_user_service": "active/running/enabled",
+    "codex_found_in_checked_paths": false
+  },
+  "independent_code_review": false
+}
