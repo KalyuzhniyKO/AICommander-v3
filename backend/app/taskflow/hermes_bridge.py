@@ -10,6 +10,7 @@ import json
 import os
 import re
 import signal
+import shutil
 from pathlib import Path
 import socket
 import sys
@@ -65,6 +66,40 @@ def _usage(captures):
     return result
 
 
+def _metadata_command(executable, argv, cwd, env, approved):
+    """Only pinned metadata binaries and fixed argv; reject PATH/name substitution."""
+    if not isinstance(argv, (list, tuple)) or not argv:
+        return False
+    try:
+        executable = os.fsdecode(executable)
+        name = Path(executable).name
+        if name not in approved or Path(os.fsdecode(argv[0])).name != name:
+            return False
+        git_flags = {'--git-dir','--absolute-git-dir','--git-common-dir','--show-toplevel',
+                     '--show-prefix','--is-inside-work-tree','HEAD'}
+        allowed = ((name == 'git' and len(argv) == 3 and argv[1] == 'rev-parse'
+                    and isinstance(argv[2], str) and argv[2] in git_flags)
+                   or (name == 'uname' and len(argv) == 2 and isinstance(argv[1], str)
+                       and argv[1] in {'-p','-m','-s'}))
+        if not allowed:
+            return False
+        if Path(executable).is_absolute():
+            candidate = Path(executable)
+        elif executable == name:
+            working = Path(os.fsdecode(cwd)).absolute() if cwd else Path.cwd()
+            directories = [str(working / item) if not Path(item).is_absolute() else item
+                           for item in os.get_exec_path(env)]
+            found = shutil.which(name, path=os.pathsep.join(directories))
+            if not found:
+                return False
+            candidate = Path(found)
+        else:
+            return False  # Relative executables change meaning under child cwd.
+        return candidate.resolve() == approved[name]
+    except (TypeError, ValueError, OSError, RuntimeError):
+        return False
+
+
 def main():
     dispatched={'count':0,'http_status':None,'request_check':None}
     agents=[]
@@ -94,7 +129,15 @@ def main():
         output_format={'type':'json_schema','json_schema':{'name':'role_artifact','strict':True,'schema':request['output_schema']}}
         base=request['base_url'];target=urlsplit(base);port=target.port or (443 if target.scheme=='https' else 80)
         addresses={x[4][0] for x in socket.getaddrinfo(target.hostname,port,type=socket.SOCK_STREAM)}
+        approved_metadata = {name: Path(found).resolve() for name in ('git', 'uname')
+                             if (found := shutil.which(name))}
         def audit(event,args):
+            if event == 'subprocess.Popen':
+                if _metadata_command(*args, approved_metadata):
+                    return
+                raise BridgePolicyError('SDK command is not allowed in planning')
+            if event in {'os.exec','os.posix_spawn','os.system','os.fork'}:
+                raise BridgePolicyError('SDK relaunch is not allowed in planning')
             if event=='socket.connect' and isinstance(args[1],tuple):
                 if args[1][0] not in addresses or args[1][1]!=port:
                     raise PermissionError('Only the configured gateway is allowed')

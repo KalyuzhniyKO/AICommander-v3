@@ -30,11 +30,12 @@ d=json.load(sys.stdin)
 print(json.dumps({'ok':True,'secret_in_argv':d['api_key'] in repr(sys.argv),
  'secret_in_env':d['api_key'] in repr(dict(os.environ)),
  'unrelated_secret_in_env':'UNRELATED_API_KEY' in os.environ,
- 'scratch_exists':Path(os.environ['HERMES_HOME']).is_dir()}))
+ 'scratch_exists':Path(os.environ['HERMES_HOME']).is_dir(),
+ 'lazy_installs_disabled':os.environ.get('HERMES_DISABLE_LAZY_INSTALLS')=='1'}))
 """)
     monkeypatch.setenv('UNRELATED_API_KEY','must-not-be-inherited')
     result=hermes.run_bridge(config,{'api_key':'synthetic-stdin-only'},lambda:False)
-    assert result=={'ok':True,'secret_in_argv':False,'secret_in_env':False,'unrelated_secret_in_env':False,'scratch_exists':True}
+    assert result=={'ok':True,'secret_in_argv':False,'secret_in_env':False,'unrelated_secret_in_env':False,'scratch_exists':True,'lazy_installs_disabled':True}
 
 
 @pytest.mark.parametrize('kind',['timeout','cancel','output_limit','bad_json'])
@@ -65,7 +66,7 @@ def test_config_env_bounds_do_not_echo_invalid_values(monkeypatch):
     assert str(exc.value)=='Invalid Hermes configuration'
 
 
-@pytest.mark.parametrize('violation',[None,'context','model','schema','repeat','spend_tokens','spend_payload','multiplier','fallback','server_tools'])
+@pytest.mark.parametrize('violation',[None,'context','model','schema','repeat','spend_tokens','spend_payload','multiplier','fallback','server_tools','subprocess','exec','git_mutation','git_metadata','platform_metadata'])
 def test_bridge_checks_actual_http_payload_before_dispatch(tmp_path,violation):
     """Execute the real bootstrap against an approved fake SDK and MockTransport."""
     source=tmp_path/'sdk';(source/'pm').mkdir(parents=True);(source/'tools').mkdir()
@@ -98,6 +99,15 @@ import json
 from run_agent import AIAgent
 VIOLATION = '''+repr(violation)+'''
 def delegate_task(goal,context,parent_agent,background):
+ if VIOLATION in ('git_mutation','git_metadata','platform_metadata'):
+  import subprocess
+  command={'git_mutation':['git','init','unexpected-repo'],'git_metadata':['git','rev-parse','--git-dir'],'platform_metadata':['uname','-p']}[VIOLATION]
+  subprocess.run(command,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+ if VIOLATION in ('subprocess','exec'):
+  import subprocess,sys,os
+  command=[sys.executable,'-c',"raise SystemExit(42)"]
+  if VIOLATION=='subprocess':subprocess.run(command,check=True)
+  else:os.execv(sys.executable,command)
  child=AIAgent(**parent_agent.kwargs)
  body={'model':child.model,'messages':[{'role':'user','content':context}],
        'response_format':child.request_overrides['response_format'],'max_tokens':child.max_tokens}
@@ -119,7 +129,7 @@ def delegate_task(goal,context,parent_agent,background):
              'budget_seconds':8,'operation_id':'fixture-operation','instruction':'synthetic',
              'context':'exact synthetic handoff','output_schema':hermes.output_schema('analyst'),
              'spend_caps':{'max_payload_bytes':16384,'max_output_tokens':64}}
-    if violation is None:
+    if violation in (None,'git_metadata','platform_metadata'):
         result=hermes.run_bridge(config,payload,lambda:False)
         assert result['usage']=={'prompt_tokens':3,'completion_tokens':2,'cost':'0.000001'}
         assert result['provenance']['inference_requests']==1
@@ -130,7 +140,7 @@ def delegate_task(goal,context,parent_agent,background):
         assert payload['api_key'] not in str(exc.value)
     trace=source/'http-dispatches'
     sent=trace.read_text().splitlines() if trace.exists() else []
-    assert sent==(['POST'] if violation in (None,'repeat') else [])
+    assert sent==(['POST'] if violation in (None,'repeat','git_metadata','platform_metadata') else [])
 
 
 @pytest.mark.parametrize('error',[OSError,RuntimeError])
@@ -160,3 +170,35 @@ def test_sdk_quota_preserves_structured_retry_after_without_replay(tmp_path,monk
     with pytest.raises(UncertainOperation) as error:hermes.run_bridge(config,{},lambda:False)
     assert error.value.budget_outcome.kind=='quota'
     assert error.value.budget_outcome.retry_after_seconds==600
+
+
+@pytest.mark.parametrize('phase,kind,expected', [('dependencies','ModuleNotFoundError',('dependencies','ModuleNotFoundError')), ('synthetic-private','private-key',('unknown','unknown'))])
+def test_preflight_diagnostics_are_allowlisted(tmp_path,monkeypatch,phase,kind,expected):
+    data={'ok':False,'dispatched':False,'phase':phase,'error_type':kind,'error':'synthetic-secret'}
+    config=script(tmp_path,monkeypatch,'print('+repr(json.dumps(data))+')')
+    with pytest.raises(hermes.HermesPreflightError) as failure:
+        hermes.run_bridge(config,{},lambda:False)
+    assert (failure.value.phase,failure.value.error_type)==expected
+    assert str(failure.value)=='Hermes preflight failed'
+
+
+def test_metadata_allowlist_pins_binary_and_child_path(tmp_path):
+    from backend.app.taskflow.hermes_bridge import _metadata_command
+    trusted=tmp_path/'trusted';evil=tmp_path/'evil'
+    trusted.mkdir();evil.mkdir()
+    for directory in (trusted,evil):
+        executable=directory/'git'
+        executable.write_text('#!/bin/sh\nexit 0\n')
+        executable.chmod(0o700)
+    approved={'git':(trusted/'git').resolve()}
+    command=['git','rev-parse','--git-dir']
+    assert _metadata_command(str(trusted/'git'),command,None,None,approved)
+    assert _metadata_command('git',command,None,{'PATH':str(trusted)},approved)
+    assert not _metadata_command(str(evil/'git'),command,None,None,approved)
+    assert not _metadata_command('git',command,None,{'PATH':str(evil)},approved)
+    assert not _metadata_command('git',command,None,{b'PATH':os.fsencode(evil)},approved)
+    assert _metadata_command('git',command,None,{b'PATH':os.fsencode(trusted)},approved)
+    assert not _metadata_command('git',command,None,{'PATH':str(trusted),b'PATH':os.fsencode(evil)},approved)
+    assert not _metadata_command('git',command,str(evil),{'PATH':'.'},approved)
+    assert not _metadata_command('./git',command,str(evil),{'PATH':str(trusted)},approved)
+    assert not _metadata_command(str(trusted/'git'),['git','init'],None,None,approved)
