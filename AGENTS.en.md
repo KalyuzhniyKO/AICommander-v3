@@ -12,3 +12,4 @@ Read `README.en.md`, `docs/PRODUCT_SPEC.en.md`, `docs/IMPLEMENTATION.en.md`, `do
 - Credit upstream authors and include complete mandatory license notices for copied third-party code; no external code was copied into this foundation.
 - Avoid a second router/orchestrator engine until the OSS ADR demonstrates a distinct missing capability.
 - If blocked by connector/tool limits, create a GitHub Issue with exact acceptance criteria instead of silently abandoning the operation.
+- **Python/macOS compatibility:** follow the [policy](docs/PYTHON_COMPATIBILITY.en.md): test declared Python versions in CI, retain macOS ARM64/Chromium tests, fix application or dependency incompatibilities instead of hiding failures with `continue-on-error`, skips, or arbitrary upper bounds. Evaluate new stable Python versions (including 3.15) separately and do not claim support before real test evidence.
