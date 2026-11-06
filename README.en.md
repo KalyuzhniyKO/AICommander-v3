@@ -1,15 +1,22 @@
 # AICommander 3.0 — Virtual AI Development Team
 
+
+## Verified update — 4 November 2026
+
+PR #62 connects [runtime spending controls](docs/RUNTIME_SPENDING.en.md) to current inference paths (default deny, scoped reservations and owner approvals). PR #63 provides a manual ChatGPT handoff. Merged PR #64 enables [Hermes owner planning controls](docs/HERMES_OWNER_CONTROLS.en.md), gated by capabilities and budget configuration. Saved-plan approval keeps `code_executed=false` and `qa_verified=false`. These changes were verified by 11 successful CI jobs at PR #64 head `0d36b3359488d901c22d5377222a620cb041cbba`; they do not establish live Zorin/provider acceptance. Next: final Hermes live acceptance, Codex/executor → QA → independent code Reviewer → draft PR, then an isolated warehouse pilot.
+
 [**Русский / Russian version**](README.md)
 
-**Status:** lean foundation MVP prepared. Live-tested opt-in OmniRoute transport and standalone Hermes routing probes are available; the full Director/Codex/QA workflow remains incomplete. The original v2 is preserved on [v2-legacy](https://github.com/KalyuzhniyKO/AICommander-v3/tree/v2-legacy).
+**Status:** verified foundation and standalone workflow components exist, but the end-to-end Hermes → code executor → QA → independent Reviewer → draft PR pipeline is **not wired together**. Hermes v2 produces genuine *planning* artifacts; the offline worktree/QA workflow runs separately. The original v2 is preserved on [v2-legacy](https://github.com/KalyuzhniyKO/AICommander-v3/tree/v2-legacy).
 
-## Verified status — 15 October 2026
+## Verified status — 4 November 2026
 
-- [PR #25](https://github.com/KalyuzhniyKO/AICommander-v3/pull/25) **merged**: foundation fixes, tests and [green CI](https://github.com/KalyuzhniyKO/AICommander-v3/actions/runs/38635577007).
-- [PR #26](https://github.com/KalyuzhniyKO/AICommander-v3/pull/26) **merged**: OSS research and ADR-001; [Issue #12](https://github.com/KalyuzhniyKO/AICommander-v3/issues/12) remains open until #11 confirms real compatibility.
-- [PR #30](https://github.com/KalyuzhniyKO/AICommander-v3/pull/30) is **merged**: authenticated owner panel integrated with offline taskflow, [7/7 CI](https://github.com/KalyuzhniyKO/AICommander-v3/actions/runs/38716011625).
-- Offline taskflow (PR #31) and worktree executor (PR #33) are merged; the executor remains a separate library. Do not duplicate UI #28. PR #37 established service/HTTP evidence; subsequent [live QA](docs/qa-issue-13-live.json) verified authorized inventory, text inference, Hermes streaming and one delegated child route.
+- `main` contains the v3 implementation, with v2 preserved in `v2-legacy`. Issues #11–#13 closed after authorized OmniRoute/Hermes live verification. Hermes taskflow v2 passes typed planning artifacts; final live #14 acceptance still awaits provider quota recovery.
+- [PR #52](https://github.com/KalyuzhniyKO/AICommander-v3/pull/52) merged: offline worktree → real pytest/Django checks → checksummed review bundle, **not** Codex CLI or HTTP/taskflow integration.
+- [PR #54](https://github.com/KalyuzhniyKO/AICommander-v3/pull/54) merged: grouped and aligned process/owner controls, snapshot-derived stage indicators and diagnostics, corrected RU/EN language selector. A Hermes plan review is not code QA.
+- [PR #55](https://github.com/KalyuzhniyKO/AICommander-v3/pull/55) merged: Python 3.11–3.14 on Linux/Windows CI and Python 3.14 on macOS ARM64 with Chromium.
+- [PR #56](https://github.com/KalyuzhniyKO/AICommander-v3/pull/56) merged: separate optional read-only viewer for saved QA bundles/Git diffs; integrity checks do **not** attest authenticity, present source state, or readiness to merge.
+- Still missing: Codex CLI wiring, a full OS sandbox, independent Reviewer, GitHub draft PR publishing, owner-accepted warehouse pilot and Zorin deployment. See [current implementation](docs/IMPLEMENTATION.en.md).
 
 ## Vision
 The human owner enters tasks from a MacBook and approves the final changes. Existing Hermes and OmniRouter run on Zorin OS. AICommander should coordinate a team without re-implementing their existing responsibilities:
@@ -21,9 +28,9 @@ The goal is real, test-backed software changes, not several independent textual 
 ## Retained from v2
 Local FastAPI, minimal web UI, tasks and rounds, SQLite history, simple role prompts and keyword role routing, an OpenRouter-compatible transport with fallback and model availability checks, and credential-free test scaffolding.
 
-Hermes taskflow v2 provides [live-tested planning artifacts](docs/HERMES_TASKFLOW.en.md), using the installed runtime. V1 retains mock runs; [panel preparation](docs/HERMES_PANEL.en.md) adds separate saved v2 history and cancellation, without model launch or approval. Final #14 live acceptance awaits provider quota recovery.
+Hermes taskflow v2 provides [live-tested planning artifacts](docs/HERMES_TASKFLOW.en.md), using the installed runtime. V1 retains mock runs; [panel preparation](docs/HERMES_PANEL.en.md) now includes budget-guarded owner planning controls after PR #64: create, Architect, start/resume/pause, explicit model step and saved-plan approval, subject to capabilities. Final #14 live acceptance awaits provider quota recovery.
 
-**Remaining integrations:** executing QA/Reviewer, Codex CLI, OS sandbox, GitHub PR generation and budget policy. The authenticated mock-taskflow panel and independent offline worktree library are implemented. [Verified scope and tests](docs/QA_PANEL.md).
+**Remaining integrations:** taskflow-triggered code execution/QA, independent Reviewer, Codex CLI, OS sandbox, GitHub draft PR generation. The authenticated mock-taskflow panel and independent offline worktree library are implemented. [Verified scope and tests](docs/QA_PANEL.md).
 
 **Deliberately excluded:** legacy macOS integration bridges, old Director/Judge/Final Auditor migration pack, obsolete roadmaps and role wrappers, and the optional OpenAI API Premium Review. ChatGPT web is an optional **manual** expert handoff; ChatGPT subscription access does not imply API entitlements.
 
@@ -48,9 +55,11 @@ Hermes taskflow v2 provides [live-tested planning artifacts](docs/HERMES_TASKFLO
 | GitHub templates and workflow | [Workflow](docs/GITHUB_WORKFLOW.en.md) | [Процесс](docs/GITHUB_WORKFLOW.md) |
 | OmniRoute opt-in transport and live smoke | [EN](docs/OMNIROUTE_ADAPTER.en.md) | [RU](docs/OMNIROUTE_ADAPTER.md) |
 | Taskflow operation protocol (offline #14) | [EN](docs/OPERATIONS.en.md) | [RU](docs/OPERATIONS.md) |
+| Local worktree → QA → review bundle | [EN](docs/LOCAL_RUN.en.md) | [RU](docs/LOCAL_RUN.md) |
+| Read-only QA/Git diff viewer | [EN](docs/LOCAL_REVIEW_PANEL.en.md) | [RU](docs/LOCAL_REVIEW_PANEL.md) |
 
 ## Local test bootstrap
-Python **3.11–3.13**; Linux/macOS:
+Python **3.11–3.14**; Linux/macOS (3.14 also covered by macOS ARM64 CI):
 
 ```bash
 python3 -m venv .venv
@@ -77,7 +86,7 @@ Copy-Item config/models.example.json config/models.json
 .\.venv\Scripts\python.exe -m backend.app.main
 ```
 
-Tests use temporary databases/configuration, ignore the local `.env`, and block live model HTTP calls. GitHub Actions runs compilation and tests on Python 3.11–3.13 on Linux and Windows. `MAX_MODEL_RETRIES` is the total attempts per model, including the first; exhausted attempts advance to the next model. Tests require no API key.
+Tests use temporary databases/configuration, ignore the local `.env`, and block live model HTTP calls. GitHub Actions runs compilation and tests on Python 3.11–3.14 on Linux and Windows, Chromium on Linux, and Python 3.14 with Chromium on macOS ARM64. `MAX_MODEL_RETRIES` is the total attempts per model, including the first; exhausted attempts advance to the next model. Tests require no API key.
 
 Smoke endpoints: `GET /health`, `POST /tasks` with JSON `{"description":"Check documentation"}`, `GET /tasks/1`, `GET /models/status`. `POST /models/check` and round creation call models when a key is configured; replace placeholder IDs before using them.
 
@@ -88,9 +97,9 @@ The repository is AICommander-v3, with v3 on `main` and original v2 on `v2-legac
 
 [Stage #10](https://github.com/KalyuzhniyKO/AICommander-v3/issues/10) is complete. See the [parallel roadmap](docs/ROADMAP.en.md) and [Issue #24](https://github.com/KalyuzhniyKO/AICommander-v3/issues/24).
 
-## Owner panel / taskflow (PR #30)
+## Owner panel / taskflow (PR #30, #54, #56)
 
-The target repository is AICommander-v3, branch main; v2 is preserved in v2-legacy. Merged PR #30 integrates the protected owner panel with the existing offline taskflow API: run history, typed artifacts, role stages, versioned/idempotent commands and owner decisions. Access requires server-side HTTP Basic credentials and an SSH tunnel to loopback. Approval accepts mock artifacts only; the separate executor, real model calls, QA and deployments are not invoked by this workflow. [Russian runbook](docs/MACBOOK_PANEL.md), [QA](docs/QA_PANEL.md).
+The target repository is AICommander-v3, branch main; v2 is preserved in v2-legacy. Merged PR #30 integrates the protected owner panel with the existing offline taskflow API: run history, typed artifacts, role stages, versioned/idempotent commands and owner decisions. Access requires server-side HTTP Basic credentials and an SSH tunnel to loopback. Approval accepts mock artifacts only; the separate executor, real model calls, QA and deployments are not invoked by this workflow. Stage indicators and process diagnostics derive from saved states, while a separate opt-in read-only panel displays local QA bundles unrelated to the selected task. [Russian runbook](docs/MACBOOK_PANEL.md), [QA](docs/QA_PANEL.md).
 
 ## Repository audit
 
@@ -104,8 +113,8 @@ request/token/time limits and declared micro-USD reservations in a separate SQLi
 ledger. Unknown pricing and unapproved paid requests are denied. Unknown outcomes
 retain capacity and fence subsequent account permissions. Run the [synthetic example](docs/contracts/budget-offline.example.json)
 with `python -m backend.app.budgets.demo`, without network access.
-**The library is not wired into runtime and does not enforce current app spending.**
-Full #18 stays open for verified pricing/usage, atomic operation-journal integration
+PR #62 connects the [runtime guard](docs/RUNTIME_SPENDING.en.md) to current inference paths with default deny and scoped reservations.
+Full #18 stays open for live pricing/usage/cap acceptance
 and live provider caps. No automatic inference retry/fallback was added.
 
 
@@ -150,9 +159,3 @@ passing/failing demo is available. No Codex CLI/models or runtime HTTP/UI/taskfl
 wiring; independent review/owner approval remain required and readiness False.
 
 [Saved QA bundle viewer](docs/LOCAL_REVIEW_PANEL.en.md): optional read-only panel section for local fixture reports/diff, with integrity checks. Not current-source verification or independent review.
-
-[Runtime spending](docs/RUNTIME_SPENDING.en.md): zero/default-deny API budgets, scoped owner approvals and reservations wired to current inference paths. No live pricing/caps acceptance is claimed.
-
-[Manual ChatGPT](docs/MANUAL_CHATGPT.en.md): latest_available / High preference, cached public sources and owner-confirmed context/answer handoff; no account/session automation or model API calls.
-
-[Hermes owner controls](docs/HERMES_OWNER_CONTROLS.en.md): protected planning steps and saved-plan decisions, with runtime budget enforcement; code/QA are separate.
