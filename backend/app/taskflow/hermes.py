@@ -26,6 +26,16 @@ ROLE_FIELDS = {
 }
 
 
+class HermesPreflightError(RuntimeError):
+    """Safe diagnostics only for a bridge which confirms no inference dispatch."""
+    def __init__(self, data):
+        super().__init__('Hermes preflight failed')
+        phase = data.get('phase')
+        kind = data.get('error_type')
+        self.phase = phase if isinstance(phase, str) and phase in {'input','revision','dependencies','runtime','parent','delegate','result'} else 'unknown'
+        self.error_type = kind if isinstance(kind, str) and kind in {'ImportError','ModuleNotFoundError','ValueError','FileNotFoundError','PermissionError','TypeError','RuntimeError','AttributeError','JSONDecodeError','KeyError','OSError','UnicodeDecodeError','SystemExit','KeyboardInterrupt','BridgePolicyError'} else 'unknown'
+
+
 def output_schema(role):
     """Only fields produced by this role; preceding artifacts are server-owned."""
     properties = {}
@@ -51,6 +61,7 @@ def run_bridge(config, payload, cancelled):
     with tempfile.TemporaryDirectory(prefix='aicommander-hermes-') as scratch:
         env = {k:os.environ[k] for k in ('PATH','LANG','LC_ALL','SystemRoot') if k in os.environ}
         env.update(PYTHONDONTWRITEBYTECODE='1', HERMES_HOME=scratch,
+                   HERMES_DISABLE_LAZY_INSTALLS='1',
                    TMPDIR=scratch, TMP=scratch, TEMP=scratch)
         process = None
         captures = []
@@ -99,7 +110,7 @@ def run_bridge(config, payload, cancelled):
             raise UncertainOperation('Hermes did not return a complete response') from None
         if not isinstance(data,dict) or not data.get('ok'):
             if isinstance(data,dict) and data.get('dispatched') is False:
-                raise RuntimeError('Hermes preflight failed')
+                raise HermesPreflightError(data) from None
             failure=UncertainOperation('Hermes did not confirm a completed result')
             status=data.get('http_status') if isinstance(data,dict) else None
             if type(status) is int and status==429:

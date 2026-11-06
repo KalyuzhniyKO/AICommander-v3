@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-04",
+  "base_tree": "23df355abbafa93025a37d1b7665af38c4b17aa6",
+  "scope": "Hermes bridge process restrictions ported onto runtime-spending foundation",
+  "checks": [
+    {
+      "command": "pytest -q tests/test_hermes_transport.py tests/test_runtime_spending.py",
+      "passed": 54,
+      "exit_code": 0
+    },
+    {
+      "command": "RUN_UI_TESTS=1 pytest -q -rs",
+      "passed": 557,
+      "skipped": 2,
+      "errors": 37,
+      "exit_code": 1,
+      "error_scope": "All 37 Chromium fixtures blocked at loopback socket.bind with PermissionError; browser assertions not executed"
+    },
+    {
+      "command": "compileall -q backend",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "source_sha256": {
+    "backend/app/taskflow/hermes.py": "5a3e91bed98002c6eba681940d0c4d706d7cb5aa126ef78bb08a49b53071eebb",
+    "backend/app/taskflow/hermes_bridge.py": "7093f339b978e6f91edb6d3249a888efb5a1bae3eff56726f6c089e67700a94b",
+    "tests/test_hermes_transport.py": "85bd5d88ca78ab0833469aa6ee943c94e35e8dda6f1089e369bc2269b892d8a4"
+  },
+  "live_zorin_checked": false,
+  "models_called": false,
+  "full_issue_14_complete": false,
+  "independent_reviewer": "Not performed; manual diff review and automated regression only",
+  "old_live_acceptance_cli": "Excluded pending runtime spending integration"
+}
